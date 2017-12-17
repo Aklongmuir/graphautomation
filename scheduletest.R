@@ -1,7 +1,6 @@
 ################################################################################
 ########Get Schedule This is Emmanuel Perry's Code from corsica.hockey##########
 ################################################################################
-
 ds.get_schedule <- function(start, end, try_tolerance = 3, agents = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36") {
     
     ## Description
@@ -44,17 +43,23 @@ ds.get_schedule <- function(start, end, try_tolerance = 3, agents = "Mozilla/5.0
     return(raw_json)
     
 }
+
 ################################################################################
 ###This code written by Matthew Barlowe @Matt_Barlowe on twitter################
 ################################################################################
-#gets yesterday's date
-date <- Sys.Date()-1
-
-#scrapes all the games from the day before and stores in a list
-list_of_games <- ds.get_schedule(date,date)
-
-#pulls out each game number from the scheduled games and stores it in a vector
-games <- c()
-for (i in 1:length(list_of_games$dates[[1]]$games)) {
-    games <- append(games, list_of_games$dates[[1]]$games[[i]]$gamePk)}
-games <- substr(games, 6, 10)
+#this functions pulls out each day's game ids from the schedules and stores
+#them in a vector
+get_games <- function(){
+    #gets yesterday's date
+    date <- Sys.Date()-1
+    
+    #scrapes all the games from the day before and stores in a list
+    list_of_games <- ds.get_schedule(date,date)
+    
+    #pulls out each game number from the scheduled games and stores it in a vector
+    games <- c()
+    for (i in 1:length(list_of_games$dates[[1]]$games)) {
+        games <- append(games, list_of_games$dates[[1]]$games[[i]]$gamePk)}
+    games <- substr(games, 6, 10)
+    return(games)
+}
