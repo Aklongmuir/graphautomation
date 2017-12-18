@@ -3391,9 +3391,9 @@ for(game_number in games){
                   xGA_5v5 = sum(xGA_5))
     
     home_xg <- mutate(home_xg, xGFpercent = xGF/(xGF + xGA) * 100, 
-                      xGF_5v5_percentage = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
+                      xGF_5v5_percent = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
     
-    home_xg$xGF_5v5_percentage <- format(home_xg$xGF_5v5_percentage, digits = 4)
+    home_xg$xGF_5v5_percent <- format(home_xg$xGF_5v5_percent, digits = 4)
     home_xg$xGFpercent <- format(home_xg$xGFpercent, digits = 4)
     
     home_xg <- na.omit(home_xg)
@@ -3438,9 +3438,9 @@ for(game_number in games){
                   xGA_5v5 = sum(xGA_5))
     
     away_xg <- mutate(away_xg, xGFpercent = xGF/(xGF + xGA) * 100, 
-                      xGF_5v5_percentage = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
+                      xGF_5v5_percent = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
     
-    away_xg$xGF_5v5_percentage <- format(away_xg$xGF_5v5_percentage, digits = 4)
+    away_xg$xGF_5v5_percent <- format(away_xg$xGF_5v5_percent, digits = 4)
     away_xg$xGFpercent <- format(away_xg$xGFpercent, digits = 4)
     
     away_xg <- na.omit(away_xg)
