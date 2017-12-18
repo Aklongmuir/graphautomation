@@ -3275,7 +3275,7 @@ for(game_number in games){
     
     #assigns colors to each team for graphing purposes
     team_colors <- c('black', 'darkred', 'gold', 'royalblue4', 'red3', 'firebrick1',
-                     'black', 'navy', 'steelblue', 'red', 'darkgreen', 'navyblue', 
+                     'black', 'navy', 'maroon', 'red', 'darkgreen', 'navyblue', 
                      'orange', 'mediumblue', 'slategrey', 'limegreen', 'darkgreen',
                      'darkorange1', 'yellow2', 'mediumblue', 'steelblue4', 'red2',
                      'lightseagreen', 'darkorange1', 'dodgerblue4', 'gold', 'gold',
@@ -3288,7 +3288,7 @@ for(game_number in games){
     #creates xG leaders for Each team
     fenwick_pbp <- filter(pbp_df, event_type %in% c("SHOT", "MISS", "GOAL"))
     groupd_player_xg <- fenwick_pbp %>% group_by(event_player_1, event_team) %>%
-        dplyr::summarise(xg = sum(xG))
+        dplyr::summarise(ixG = sum(xG))
     
     #Sums xG by team
     xg_sums <- fenwick_pbp %>% group_by(event_team) %>% 
@@ -3347,15 +3347,122 @@ for(game_number in games){
                             caption = 'by @Matt_Barlowe')
    
     
-    #head(arrange(groupd_player_xg, event_team, desc(xg)))
-    #head(arrange(groupd_player_xg, desc(event_team), desc(xg)))
+    #The code below calculates the xGF% for all situations and 5v5 for both
+    #away and home teams
+    
+    home1 <- fenwick_pbp %>% group_by(home_on_1) %>% 
+        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
+                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
+    
+    home2 <- fenwick_pbp %>% group_by(home_on_2) %>% 
+        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
+                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
+    
+    home3 <- fenwick_pbp %>% group_by(home_on_3) %>% 
+        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
+                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
+    
+    home4 <- fenwick_pbp %>% group_by(home_on_4) %>% 
+        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
+                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
+    
+    home5 <- fenwick_pbp %>% group_by(home_on_5) %>% 
+        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
+                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
+    
+    home6 <- fenwick_pbp %>% group_by(home_on_6) %>% 
+        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
+                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
+    
+    names(home1)[1] <- 'player'
+    names(home2)[1] <- 'player'
+    names(home3)[1] <- 'player'
+    names(home4)[1] <- 'player'
+    names(home5)[1] <- 'player'
+    names(home6)[1] <- 'player'
+    
+    
+    home_xg <- bind_rows(home1, home2, home3, home4, home5, home6)
+    
+    home_xg$team <- unique(fenwick_pbp$home_team)
+    
+    home_xg <- home_xg %>% group_by(player, team) %>% 
+        summarise(xGF = sum(xGF), xGA = sum(xGA), xGF_5v5 = sum(xGF_5), 
+                  xGA_5v5 = sum(xGA_5))
+    
+    home_xg <- mutate(home_xg, xGFpercent = xGF/(xGF + xGA) * 100, 
+                      xGF_5v5_percentage = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
+    
+    home_xg$xGF_5v5_percentage <- format(home_xg$xGF_5v5_percentage, digits = 4)
+    home_xg$xGFpercent <- format(home_xg$xGFpercent, digits = 4)
+    
+    home_xg <- na.omit(home_xg)
+    
+    away1 <- fenwick_pbp %>% group_by(away_on_1) %>% 
+        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
+                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
+    
+    away2 <- fenwick_pbp %>% group_by(away_on_2) %>% 
+        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
+                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
+    
+    away3 <- fenwick_pbp %>% group_by(away_on_3) %>% 
+        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
+                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
+    
+    away4 <- fenwick_pbp %>% group_by(away_on_4) %>% 
+        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
+                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
+    
+    away5 <- fenwick_pbp %>% group_by(away_on_5) %>% 
+        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
+                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
+    
+    away6 <- fenwick_pbp %>% group_by(away_on_6) %>% 
+        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
+                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
+    
+    names(away1)[1] <- 'player'
+    names(away2)[1] <- 'player'
+    names(away3)[1] <- 'player'
+    names(away4)[1] <- 'player'
+    names(away5)[1] <- 'player'
+    names(away6)[1] <- 'player'
+    
+    away_xg <- bind_rows(away1, away2, away3, away4, away5, away6)
+    
+    away_xg$team <- unique(fenwick_pbp$away_team)
+    
+    away_xg <- away_xg %>% group_by(player, team) %>% 
+        summarise(xGF = sum(xGF), xGA = sum(xGA), xGF_5v5 = sum(xGF_5), 
+                  xGA_5v5 = sum(xGA_5))
+    
+    away_xg <- mutate(away_xg, xGFpercent = xGF/(xGF + xGA) * 100, 
+                      xGF_5v5_percentage = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
+    
+    away_xg$xGF_5v5_percentage <- format(away_xg$xGF_5v5_percentage, digits = 4)
+    away_xg$xGFpercent <- format(away_xg$xGFpercent, digits = 4)
+    
+    away_xg <- na.omit(away_xg)
+    
+    total_percent_stats <- bind_rows(home_xg, away_xg)
+    
+    groupd_player_xg <- full_join(groupd_player_xg, total_percent_stats, 
+                                  by = c('event_player_1'= 'player', 
+                                         'event_team' = 'team'))
+    
+    groupd_player_xg$xGF <- format(groupd_player_xg$xGF, digits = 2)
+    groupd_player_xg$xGA <- format(groupd_player_xg$xGA, digits = 2)
+    groupd_player_xg$xGF_5v5 <- format(groupd_player_xg$xGF_5v5, digits = 2)
+    groupd_player_xg$ixG <- format(groupd_player_xg$ixG, digits = 2)
+    groupd_player_xg$xGA_5v5 <- format(groupd_player_xg$xGA_5v5, digits = 2)
     
     #Creates tables of each team xG values and saves them to plots
     away_xG_table <- arrange(subset(groupd_player_xg, 
-                            groupd_player_xg$event_team == away_team), desc(xg))
+                            groupd_player_xg$event_team == away_team), desc(ixG))
     
     home_xG_table <- arrange(subset(groupd_player_xg, 
-                            groupd_player_xg$event_team == home_team), desc(xg))
+                            groupd_player_xg$event_team == home_team), desc(ixG))
     
     away_table <- grid.arrange(tableGrob(away_xG_table))
     home_table <- grid.arrange(tableGrob(home_xG_table))
