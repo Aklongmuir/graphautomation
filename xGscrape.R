@@ -3300,7 +3300,8 @@ for(game_number in games){
     xg_5v5_graph_title <- paste(away_team, '@', home_team, 
                                 '5v5 Expected Goals', Sys.Date()-1)
     final_xg_score <- paste(away_team, format(xg_sums$xG[2], digits = 3), 
-                            home_team, format(xg_sums$xG[1], digits = 3))
+                            home_team, format(xg_sums$xG[1], digits = 3), 
+                            'Expected Goals')
     xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations', 
                                 Sys.Date()-1)
     
@@ -3342,7 +3343,7 @@ for(game_number in games){
                         scale_color_manual(labels = c(away_team, home_team), 
                            values = c("red", "blue")) +
                         xlab("Minutes") + ylab("Expected Goals") +
-                        labs(title = xg_graph_title, subtitle = final_xg_score, 
+                        labs(title = xg_5v5_graph_title, subtitle = final_xg_score, 
                             caption = 'by @Matt_Barlowe')
    
     
