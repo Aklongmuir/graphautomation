@@ -2,6 +2,7 @@
 
 
 setwd("~/ProgrammingStuff/R/NHLScraper/")
+Sys.setenv(TZ='EST')
 #Emmanuel Perry's Scraper from corsica.hockey and used with his permission######
 #################################################################################
 ###########              START HERE TO LOAD ALL FUNCTIONS             ###########  
