@@ -3284,9 +3284,24 @@ for(game_number in games){
                             'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
                             'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
     
+    #creates xG leaders for Each team
+    fenwick_pbp <- filter(pbp_df, event_type %in% c("SHOT", "MISS", "GOAL"))
+    groupd_player_xg <- fenwick_pbp %>% group_by(event_player_1, event_team) %>%
+        dplyr::summarise(xg = sum(xG))
+    
+    #Sums xG by team
+    xg_sums <- fenwick_pbp %>% group_by(event_team) %>% 
+        dplyr::summarise( xG = sum(xG))
+    
     #creates title graph from team names and graphs running xG throughout the game
-    xg_graph_title <- paste(away_team, '@', home_team, 'Expected Goals')
-    xg_5v5_graph_title <- paste(away_team, '@', home_team, '5v5 Expected Goals')
+    xg_graph_title <- paste(away_team, '@', home_team, 
+                            'Expected Goals', Sys.Date()-1)
+    xg_5v5_graph_title <- paste(away_team, '@', home_team, 
+                                '5v5 Expected Goals', Sys.Date()-1)
+    final_xg_score <- paste(away_team, format(xg_sums$xG[2], digits = 3), 
+                            home_team, format(xg_sums$xG[1], digits = 3))
+    xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations', 
+                                Sys.Date()-1)
     
     xG_plot_all_sits  <- ggplot(aes(x = game_seconds/60, y = running_xg), 
                 data = subset(xg_graph_df, xg_graph_df$team %in% c('run_home_xg',
@@ -3302,8 +3317,9 @@ for(game_number in games){
                 geom_vline(xintercept = c(20, 40, 60, 65)) +
                 scale_color_manual(labels = c(away_team, home_team), 
                     values = c("red", "blue")) +
-                xlab("Time") + ylab("Expected Goals") +
-                labs(title = xg_graph_title)
+                xlab("Minutes") + ylab("Expected Goals") +
+                labs(title = xg_graph_title, subtitle = final_xg_score, 
+                    caption = 'by @Matt_Barlowe')
     
     #5v5 Running xG graph
     xG_plot_5v5  <- ggplot(aes(x = game_seconds/60, y = running_xg), 
@@ -3324,12 +3340,10 @@ for(game_number in games){
                         geom_vline(xintercept = c(20, 40, 60, 65)) +
                         scale_color_manual(labels = c(away_team, home_team), 
                            values = c("red", "blue")) +
-                        xlab("Time") + ylab("Expected Goals") +
-                        labs(title = xg_5v5_graph_title)
-    #creates xG leaders for Each team
-    fenwick_pbp <- filter(pbp_df, event_type %in% c("SHOT", "MISS", "GOAL"))
-    groupd_player_xg <- fenwick_pbp %>% group_by(event_player_1, event_team) %>%
-        dplyr::summarise(xg = sum(xG))
+                        xlab("Minutes") + ylab("Expected Goals") +
+                        labs(title = xg_graph_title, subtitle = final_xg_score, 
+                            caption = 'by @Matt_Barlowe')
+   
     
     #head(arrange(groupd_player_xg, event_team, desc(xg)))
     #head(arrange(groupd_player_xg, desc(event_team), desc(xg)))
@@ -3344,9 +3358,7 @@ for(game_number in games){
     away_table <- grid.arrange(tableGrob(away_xG_table))
     home_table <- grid.arrange(tableGrob(home_xG_table))
     
-    #Sums xG by team
-    xg_sums <- fenwick_pbp %>% group_by(event_team) %>% 
-        dplyr::summarise( xG = sum(xG))
+    
     
     #mirrors the y locations for the home and away teams on the offsides from where
     #they will be graphed so the correct Ice Locations will be shown on the xG 
@@ -3381,7 +3393,8 @@ for(game_number in games){
             subset(fenwick_pbp, fenwick_pbp$event_team == away_team & 
             fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[away_team],
             shape = 15) +
-        labs(title = xg_graph_title) + 
+        labs(title = xg_locations_title, subtitle = final_xg_score, 
+             caption = 'by @Matt_Barlowe') + 
         geom_segment(aes(x = -87.95, y = -39, xend = -87.95, yend = 39), color = 'red') +
         geom_segment(aes(x = 87.95, y = -39, xend = 87.95, yend = 39), color = 'red') +
         geom_segment(aes(x = 0, y = -42, xend = 0, yend = 42), color = 'red') +
