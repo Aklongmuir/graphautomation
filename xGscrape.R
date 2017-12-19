@@ -3115,6 +3115,8 @@ get_games <- function(){
 
 games <- get_games()
 
+daily_games <- c()
+
 for(game_number in games){
     pbp_list <- ds.compile_games(games = as.character(game_number),
                                  season = "20172018",
@@ -3285,6 +3287,18 @@ for(game_number in games){
                             'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
                             'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
     
+    team_hashtags <- c('LetsGoDucks', '#Yotes', 'NHLBruins', '#Sabres', '#CofRed',
+                       '#Redvolution', '#Blackhawks', '#CBJ', '#GoAvsGo', '#LGRW',
+                       '#GoStars', '#FlaPanthers', '#LetsGoOilers', '#GoHabsGo', 
+                       '#GoKingsGo', '#NJDevils', '#mnwild', '#Isles', '#Preds', 
+                       '#NYR', '#AllTogetherNowSTL', '#Sens', '#SJSharks', 
+                       '#LetsGoFlyers', '#Canucks', '#LetsGoPens', '#VegasGoesGold',
+                       '#GoBolts', '#TMLtalk', '#GoJetsGo', '#ALLCAPS')
+    
+    names(team_hashtags) <- c('ANA', 'ARI','BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'CBJ', 
+                            'COL', 'DET', 'DAL', 'FLA', 'EDM', 'MTL', 'L.A', 'N.J',
+                            'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
+                            'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
     #creates xG leaders for Each team
     fenwick_pbp <- filter(pbp_df, event_type %in% c("SHOT", "MISS", "GOAL"))
     groupd_player_xg <- fenwick_pbp %>% group_by(event_player_1, event_team) %>%
@@ -3547,4 +3561,15 @@ for(game_number in games){
     ggsave('xGHome.png', home_table)
     ggsave('xGAway.png',  away_table)
     write_csv(pbp_df, paste(game_number, '.csv'))
+    
+    #write team name and score to vector to write to text file to use as tweet
+    #text
+    
+    daily_games <- c(daily_games, game_number, Sys.Date()-1, 
+                     paste(team_hashtags[away_team], format(xg_sums$xG[2], digits = 3)),
+                     paste(team_hashtags[home_team], format(xg_sums$xG[1], digits = 3)))
 }    
+
+fileConn <- file('~/graphautomation/dailygames.txt')
+writeLines(daily_games, fileConn)
+close(fileConn)
