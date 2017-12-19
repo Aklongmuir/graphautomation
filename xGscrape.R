@@ -3565,7 +3565,7 @@ for(game_number in games){
     #write team name and score to vector to write to text file to use as tweet
     #text
     
-    daily_games <- c(daily_games, game_number, Sys.Date()-1, 
+    daily_games <- c(daily_games, game_number, 
                      paste(team_hashtags[away_team], format(xg_sums$xG[2], digits = 3)),
                      paste(team_hashtags[home_team], format(xg_sums$xG[1], digits = 3)))
 }    
