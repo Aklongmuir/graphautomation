@@ -3292,7 +3292,7 @@ for(game_number in games){
                        '#GoStars', '#FlaPanthers', '#LetsGoOilers', '#GoHabsGo', 
                        '#GoKingsGo', '#NJDevils', '#mnwild', '#Isles', '#Preds', 
                        '#NYR', '#AllTogetherNowSTL', '#Sens', '#SJSharks', 
-                       '#LetsGoFlyers', '#Canucks', '#LetsGoPens', '#VegasGoesGold',
+                       '#LetsGoFlyers', '#Canucks', '#LetsGoPens', '#VegasBorn',
                        '#GoBolts', '#TMLtalk', '#GoJetsGo', '#ALLCAPS')
     
     names(team_hashtags) <- c('ANA', 'ARI','BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'CBJ', 
@@ -3473,10 +3473,12 @@ for(game_number in games){
     
     #Creates tables of each team xG values and saves them to plots
     away_xG_table <- arrange(subset(groupd_player_xg, 
-                            groupd_player_xg$event_team == away_team), desc(ixG))
+                            groupd_player_xg$event_team == away_team), 
+                            desc(xGF_5v5_percent))
     
     home_xG_table <- arrange(subset(groupd_player_xg, 
-                            groupd_player_xg$event_team == home_team), desc(ixG))
+                            groupd_player_xg$event_team == home_team), 
+                            desc(xGF_5v5_percent))
     
     away_table <- grid.arrange(tableGrob(away_xG_table))
     home_table <- grid.arrange(tableGrob(home_xG_table))
