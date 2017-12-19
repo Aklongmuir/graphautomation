@@ -3278,7 +3278,7 @@ for(game_number in games){
                             'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
                             'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
     
-    team_hashtags <- c('LetsGoDucks', '#Yotes', 'NHLBruins', '#Sabres', '#CofRed',
+    team_hashtags <- c('#LetsGoDucks', '#Yotes', '#NHLBruins', '#Sabres', '#CofRed',
                        '#Redvolution', '#Blackhawks', '#CBJ', '#GoAvsGo', '#LGRW',
                        '#GoStars', '#FlaPanthers', '#LetsGoOilers', '#GoHabsGo', 
                        '#GoKingsGo', '#NJDevils', '#mnwild', '#Isles', '#Preds', 
@@ -3565,8 +3565,10 @@ for(game_number in games){
     #text
     
     daily_games <- c(daily_games, game_number, 
-                     paste(team_hashtags[away_team], format(xg_sums$xG[2], digits = 3)),
-                     paste(team_hashtags[home_team], format(xg_sums$xG[1], digits = 3)))
+                     paste(team_hashtags[away_team], format(xg_sums$xG[xg_sums$event_team==away_team], 
+                                              digits = 3)),
+                     paste(team_hashtags[home_team], format(xg_sums$xG[xg_sums$event_team==home_team], 
+                                              digits = 3)))
 }    
 
 fileConn <- file('~/graphautomation/dailygames.txt')
