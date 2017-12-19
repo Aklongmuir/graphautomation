@@ -3451,8 +3451,8 @@ for(game_number in games){
         summarise(xGF = sum(xGF), xGA = sum(xGA), xGF_5v5 = sum(xGF_5), 
                   xGA_5v5 = sum(xGA_5))
     
-    away_xg <- mutate(away_xg, xGFpercent = xGF/(xGF + xGA) * 100, 
-                      xGF_5v5_percent = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
+    away_xg <- mutate(away_xg, xGF% = xGF/(xGF + xGA) * 100, 
+                      xGF5v5per = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
     
     away_xg$xGF_5v5_percent <- format(away_xg$xGF_5v5_percent, digits = 4)
     away_xg$xGFpercent <- format(away_xg$xGFpercent, digits = 4)
@@ -3465,11 +3465,15 @@ for(game_number in games){
                                   by = c('event_player_1'= 'player', 
                                          'event_team' = 'team'))
     
+    groupd_player_xg[is.na(groupd_player_xg)] <- 0
+    
     groupd_player_xg$xGF <- format(groupd_player_xg$xGF, digits = 2)
     groupd_player_xg$xGA <- format(groupd_player_xg$xGA, digits = 2)
     groupd_player_xg$xGF_5v5 <- format(groupd_player_xg$xGF_5v5, digits = 2)
     groupd_player_xg$ixG <- format(groupd_player_xg$ixG, digits = 2)
     groupd_player_xg$xGA_5v5 <- format(groupd_player_xg$xGA_5v5, digits = 2)
+    
+    
     
     #Creates tables of each team xG values and saves them to plots
     away_xG_table <- arrange(subset(groupd_player_xg, 
