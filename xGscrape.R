@@ -3151,8 +3151,8 @@ for(game_number in games){
     even_strength <- c('5v5', '4v4', '3v3', 'EvE', '5v0')
     home_advantage <- c('5v4', '5v3', '4v3')
     away_advantage <- c('4v5', '3v5', '3v4')
-    home_empty_net <- c('Ev5', 'Ev4', 'Ev3')
-    away_empty_net <- c('5vE', '4vE', '3vE')
+    #home_empty_net <- c('Ev5', 'Ev4', 'Ev3')
+    #away_empty_net <- c('5vE', '4vE', '3vE')
     
     #function to create dummy variables to determine if 
     #event was committed by the home team
@@ -3211,26 +3211,17 @@ for(game_number in games){
     
     #if statements to determine shooter strength state based on vectors declared
     #at beginning of file
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% even_strength, 
+    pbp_df$shooter_strength <- ifelse(pbp_df$home_skaters == pbp_df$away_skaters, 
                                                   'EV', NA)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% home_advantage
+    pbp_df$shooter_strength <- ifelse(pbp_df$home_skaters > pbp_df$away_skaters
                         & pbp_df$is_home == 1, 'PP', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% away_advantage
+    pbp_df$shooter_strength <- ifelse(pbp_df$home_skaters < pbp_df$away_skaters
                         & pbp_df$is_home == 1, 'SH', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% home_advantage
+    pbp_df$shooter_strength <- ifelse(pbp_df$home_skaters > pbp_df$away_skaters
                         & pbp_df$is_home == 0, 'SH', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% away_advantage
+    pbp_df$shooter_strength <- ifelse(pbp_df$home_skaters < pbp_df$away_skaters
                         & pbp_df$is_home == 0, 'PP', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% home_empty_net
-                        & pbp_df$is_home == 1, 'PP', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% home_empty_net
-                        & pbp_df$is_home == 0, 'EN', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% away_empty_net
-                        & pbp_df$is_home == 1, 'EN', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% away_empty_net
-                        & pbp_df$is_home == 0, 'PP', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% home_empty_net
-                        & pbp_df$is_home == 1, 'PP', pbp_df$shooter_strength)
+    
     pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% c('Ev0', '0vE'), 
                                                   'PS', pbp_df$shooter_strength)
     
@@ -3313,8 +3304,10 @@ for(game_number in games){
                             'Expected Goals', Sys.Date()-1)
     xg_5v5_graph_title <- paste(away_team, '@', home_team, 
                                 '5v5 Expected Goals', Sys.Date()-1)
-    final_xg_score <- paste(away_team, format(xg_sums$xG[2], digits = 3), 
-                            home_team, format(xg_sums$xG[1], digits = 3), 
+    final_xg_score <- paste(away_team, format(xg_sums$xG[xg_sums$event_team==away_team], 
+                                              digits = 3), 
+                            home_team, format(xg_sums$xG[xg_sums$event_team==home_team], 
+                                              digits = 3), 
                             'Expected Goals')
     xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations', 
                                 Sys.Date()-1)
@@ -3451,8 +3444,8 @@ for(game_number in games){
         summarise(xGF = sum(xGF), xGA = sum(xGA), xGF_5v5 = sum(xGF_5), 
                   xGA_5v5 = sum(xGA_5))
     
-    away_xg <- mutate(away_xg, xGF% = xGF/(xGF + xGA) * 100, 
-                      xGF5v5per = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
+    away_xg <- mutate(away_xg, xGFpercent = xGF/(xGF + xGA) * 100, 
+                      xGF_5v5_percent = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
     
     away_xg$xGF_5v5_percent <- format(away_xg$xGF_5v5_percent, digits = 4)
     away_xg$xGFpercent <- format(away_xg$xGFpercent, digits = 4)
