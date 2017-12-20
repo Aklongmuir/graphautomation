@@ -3563,12 +3563,16 @@ for(game_number in games){
     
     #write team name and score to vector to write to text file to use as tweet
     #text
+    away_goals <- pbp_df$away_score[length(pbp_df$away_score)]
+    home_goals <- pbp_df$home_score[length(pbp_df$home_score)]
     
     daily_games <- c(daily_games, game_number, 
-                     paste(team_hashtags[away_team], format(xg_sums$xG[xg_sums$event_team==away_team], 
-                                              digits = 3)),
-                     paste(team_hashtags[home_team], format(xg_sums$xG[xg_sums$event_team==home_team], 
-                                              digits = 3)))
+                     paste(team_hashtags[away_team], 'xG:',
+                           format(xg_sums$xG[xg_sums$event_team==away_team], 
+                                              digits = 3), 'Goals:', away_goals),
+                     paste(team_hashtags[home_team], 'xG:',
+                           format(xg_sums$xG[xg_sums$event_team==home_team], 
+                                              digits = 3), 'Goals:', home_goals))
 }    
 
 fileConn <- file('~/graphautomation/dailygames.txt')
