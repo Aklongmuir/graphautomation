@@ -3557,8 +3557,8 @@ for(game_number in games){
     ggsave('RunningxG.png', plot = xG_plot_all_sits, height = 5)
     ggsave('RunningxG5v5.png', plot = xG_plot_5v5, height = 5)
     ggsave('xGlocations.png', plot = xg_locations_plot, height = 4)
-    ggsave('xGHome.png', home_table)
-    ggsave('xGAway.png',  away_table)
+    ggsave('xGHome.png', home_table, height = 6, width = 10)
+    ggsave('xGAway.png',  away_table, height = 6, width = 10)
     write_csv(pbp_df, paste(game_number, '.csv'))
     
     #write team name and score to vector to write to text file to use as tweet
