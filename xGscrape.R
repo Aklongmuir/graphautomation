@@ -3117,6 +3117,8 @@ games <- get_games()
 
 daily_games <- c()
 
+daily_pbp <- NULL
+
 for(game_number in games){
     pbp_list <- ds.compile_games(games = as.character(game_number),
                                  season = "20172018",
@@ -3550,6 +3552,11 @@ for(game_number in games){
         geom_point(aes(x = c(-21, -21, 21, 21), y = c(22, -22, 22, -22)), 
                    color = 'red', size = 2) +
         scale_y_continuous(limits = c(-42, 42))
+    
+    #adding play by play data to one dataframe to save to a file for sql 
+    #insertion
+    
+    daily_pbp <- rbind(daily_pbp, pbp_df)
         
     #saves all the plots to png files and folder labeled with game number
     dir.create(paste0('~/HockeyStuff/xGGameBreakdowns/2018/', str_trim(game_number)))
@@ -3559,7 +3566,7 @@ for(game_number in games){
     ggsave('xGlocations.png', plot = xg_locations_plot, height = 4)
     ggsave('xGHome.png', home_table, height = 6, width = 10)
     ggsave('xGAway.png',  away_table, height = 6, width = 10)
-    write_csv(pbp_df, paste(game_number, '.csv'))
+    write_csv(pbp_df, paste0(game_number, '.csv'))
     
     #write team name and score to vector to write to text file to use as tweet
     #text
@@ -3574,7 +3581,8 @@ for(game_number in games){
                            format(xg_sums$xG[xg_sums$event_team==home_team], 
                                               digits = 3), 'Goals:', home_goals))
 }    
-
+write_csv(daily_pbp, paste0('~/HockeyStuff/CompleteNHLPbPData/2018PbPDataGames', 
+            games[1], '-', games[length(games)]))
 fileConn <- file('~/graphautomation/dailygames.txt')
 writeLines(daily_games, fileConn)
 close(fileConn)
