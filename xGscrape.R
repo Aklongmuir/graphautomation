@@ -3581,8 +3581,8 @@ for(game_number in games){
                            format(xg_sums$xG[xg_sums$event_team==home_team], 
                                               digits = 3), 'Goals:', home_goals))
 }    
-write_delim(daily_pbp, paste0('~/HockeyStuff/CompleteNHLPbPData/2018PbPDataGames', 
-            games[1], '-', games[length(games)]), delim = '|')
+write_delim(daily_pbp, '~/HockeyStuff/CompleteNHLPbPData/dailypbp', 
+            delim = '|')
 fileConn <- file('~/graphautomation/dailygames.txt')
 writeLines(daily_games, fileConn)
 close(fileConn)
