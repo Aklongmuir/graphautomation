@@ -4,3 +4,7 @@ This code was created to use Emmanuel Perry's of [Corsica](corsica.hockey) play 
 my Expected Goals model to describe the quality of chances each team had in the game.  My model can be
 read about [here](https://rpubs.com/mcbarlowe/xGmodel).  If you have any questions feel free to email
 me at the address in my profile or post a bug on github.
+
+Included is a python script to read from various text files and post the contents to twitter through an api.  The scripts reads in
+the keys from a text file using this format `key_name: key`.  It also takes command line arguments detailed in the doc string
+of the script.
