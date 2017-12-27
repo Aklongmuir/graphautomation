@@ -3098,12 +3098,12 @@ ftable2df <- function(mydata) {
     
 }
 
-get_games <- function(){
+get_games <- function(yesterday){
     #gets yesterday's date
-    date <- Sys.Date()-1
+    
     
     #scrapes all the games from the day before and stores in a list
-    list_of_games <- ds.get_schedule(date,date)
+    list_of_games <- ds.get_schedule(yesterday,yesterday)
     
     #pulls out each game number from the scheduled games and stores it in a vector
     games <- c()
@@ -3113,7 +3113,21 @@ get_games <- function(){
     return(games)
 }
 
-games <- get_games()
+date <- Sys.Date()-1
+
+tryCatch(games <- get_games(date), 
+         error = function(cond) {
+             fileConn <- file('~/graphautomation/dailygames.txt')
+             writeLines(c('No games today'), fileConn)
+             close(fileConn)
+             message(cond)
+             fileConn <- file('~/HockeyStuff/CompleteNHLPbPData/dailypbp')
+             writeLines(c('No games today'), fileConn)
+             close(fileConn)
+             return(NULL)
+         }
+)
+
 
 daily_games <- c()
 
