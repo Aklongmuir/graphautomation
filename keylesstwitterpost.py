@@ -1,3 +1,4 @@
+import time
 import sys
 import datetime
 import tweepy
@@ -49,9 +50,10 @@ def top5_post(bot_api, top5_file):
     for line in top5_file:
         top5_players += line
 
+
     bot_api.update_status(status = top5_players)
 
-def daily_games_post(bot_api, games_file):
+def daily_games_post(bot_api, games_file, date):
     '''
     Function to post the xG stats from the NHL games the day before
 
@@ -63,27 +65,35 @@ def daily_games_post(bot_api, games_file):
     Output:
     None
     '''
-#parse games file and seperate into individual lists for each game
+    #parse games file and seperate into individual lists for each game
     games_text = []
     for line in games_file.readlines():
         games_text.append(line)
 
+    print(games_text)
+    #Checks to see if games were played and if not ends function execution
+    if games_text[0].strip() == "No games today":
+        print("No games today")
+        return False
+
     games_text = [games_text[x:x+3] for x in range(0, len(games_text), 3)]
 
     for game in games_text:
-# upload images and get media_ids
+        # upload images and get media_ids
         filenames = ['xGAway.png', 'xGHome.png', 'xGlocations.png', 'RunningxG5v5.png']
         media_ids = []
         for filename in filenames:
-            res = api.media_upload('/Users/MattBarlowe/HockeyStuff/xGGameBreakdowns/2018/{}/{}'.\
+            res = bot_api.media_upload('/Users/MattBarlowe/HockeyStuff/xGGameBreakdowns/2018/{}/{}'.\
                     format(game[0][:5], filename))
             media_ids.append(res.media_id)
-# tweet with multiple images
+        # tweet with multiple images
         bot_api.update_status(status= '{}{}{}'.format(game[1],
             game[2], date.strftime('%m-%d-%Y')), media_ids=media_ids)
 
-#to avoid overwhelming twitter api
+        #to avoid overwhelming twitter api
         time.sleep(30)
+
+    return True
 
 def main():
     '''
@@ -99,11 +109,12 @@ def main():
     None
     '''
 
+    date = datetime.datetime.now() - datetime.timedelta(days=1)
     twitter_keys = get_twitter_keys(sys.argv[1])
     games = open(sys.argv[2], 'r')
     top5 = open(sys.argv[3], 'r')
 
-#set twitter API
+    #set twitter API
     auth = tweepy.OAuthHandler(twitter_keys['Consumer Key'],
             twitter_keys['Consumer Secret Key'])
     auth.set_access_token(twitter_keys['Access Key'],
@@ -111,8 +122,14 @@ def main():
     api = tweepy.API(auth)
 
 
-    daily_games_post(api, games)
-    top5_post(api, top5)
+    games_today = daily_games_post(api, games, date)
+    #checks to see if games where played yesterday if not it pass on posting
+    #top 5 ixg players tweet
+    if not games_today:
+        print("No games today")
+        pass
+    else:
+        top5_post(api, top5)
 
     games.close()
     top5.close()
