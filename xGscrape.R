@@ -3112,7 +3112,7 @@ library(gridExtra)
 library(stringr)
 
 #stores yesterday's date in a variable
-date <- Sys.Date()
+date <- Sys.Date()-1
 
 #daily_games stores each games results in goals and xG to write to text file for
 #twitter bot and daily_pbp will be the dataframe that holds the complete play by
@@ -3579,7 +3579,7 @@ for(game_number in games[[1]]){
     groupd_player_xg$xGF_5v5 <- format(groupd_player_xg$xGF_5v5, digits = 2)
     groupd_player_xg$ixG <- format(groupd_player_xg$ixG, digits = 2)
     groupd_player_xg$xGA_5v5 <- format(groupd_player_xg$xGA_5v5, digits = 2)
-    groupd_player_xg$TOI <- format(groupd_player_xg$TOI, digits = 4)
+    groupd_player_xg$TOI <- format(groupd_player_xg$TOI, digits = 3)
     
     
     #Creates tables of each team xG values and saves them to plots
@@ -3676,8 +3676,8 @@ for(game_number in games[[1]]){
     ggsave('RunningxG.png', plot = xG_plot_all_sits, height = 5)
     ggsave('RunningxG5v5.png', plot = xG_plot_5v5, height = 5)
     ggsave('xGlocations.png', plot = xg_locations_plot, height = 4)
-    ggsave('xGHome.png', home_table, height = 6, width = 10)
-    ggsave('xGAway.png',  away_table, height = 6, width = 10)
+    ggsave('xGHome.png', home_table, height = 6, width = 12)
+    ggsave('xGAway.png',  away_table, height = 6, width = 12)
     write_csv(pbp_df, paste0(game_number, '.csv'))
     
     #write team name and score to vector to write to text file to use as tweet
