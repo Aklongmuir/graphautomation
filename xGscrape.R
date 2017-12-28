@@ -3097,24 +3097,85 @@ ftable2df <- function(mydata) {
     cbind(dfrows, dfcols)
     
 }
+################################################################################
+#All code below here including xGmodel written by Matthew Barlowe @matt_barlowe#
+#on twitter#####################################################################
+
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggforce)
+library(readr)
+library(grid)
+library(gridExtra)
+library(stringr)
+
+#stores yesterday's date in a variable
+date <- Sys.Date()
+
+#daily_games stores each games results in goals and xG to write to text file for
+#twitter bot and daily_pbp will be the dataframe that holds the complete play by
+#play from every game the day before that will be written to a text file for sql
+#insertion
+daily_games <- c()
+daily_pbp <- NULL
+
+#assigns colors to each team for graphing purposes
+team_colors <- c('black', 'darkred', 'gold', 'royalblue4', 'red3', 'firebrick1',
+                 'black', 'navy', 'maroon', 'red', 'darkgreen', 'navyblue', 
+                 'orange', 'mediumblue', 'slategrey', 'limegreen', 'darkgreen',
+                 'darkorange1', 'yellow2', 'mediumblue', 'steelblue4', 'red2',
+                 'lightseagreen', 'darkorange1', 'dodgerblue4', 'gold', 'gold',
+                 'dodgerblue3', 'dodgerblue3', 'navyblue', 'red1')
+names(team_colors) <- c('ANA', 'ARI','BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'CBJ', 
+                        'COL', 'DET', 'DAL', 'FLA', 'EDM', 'MTL', 'L.A', 'N.J',
+                        'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
+                        'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
+
+team_hashtags <- c('#LetsGoDucks', '#Yotes', '#NHLBruins', '#Sabres', '#CofRed',
+                   '#Redvolution', '#Blackhawks', '#CBJ', '#GoAvsGo', '#LGRW',
+                   '#GoStars', '#FlaPanthers', '#LetsGoOilers', '#GoHabsGo', 
+                   '#GoKingsGo', '#NJDevils', '#mnwild', '#Isles', '#Preds', 
+                   '#NYR', '#AllTogetherNowSTL', '#Sens', '#SJSharks', 
+                   '#LetsGoFlyers', '#Canucks', '#LetsGoPens', '#VegasBorn',
+                   '#GoBolts', '#TMLtalk', '#GoJetsGo', '#ALLCAPS')
+
+names(team_hashtags) <- c('ANA', 'ARI','BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'CBJ', 
+                          'COL', 'DET', 'DAL', 'FLA', 'EDM', 'MTL', 'L.A', 'N.J',
+                          'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
+                          'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
 
 get_games <- function(yesterday){
-    #gets yesterday's date
+    #This fuction returns a list of game ids and the nhl season from the day 
+    #before to pass to the scraper in the loop below
     
+    games <- c()
+    season <-c()
     
     #scrapes all the games from the day before and stores in a list
     list_of_games <- ds.get_schedule(yesterday,yesterday)
     
+    #retrieves season from scheduled games
+    season <- list_of_games$dates[[1]]$games[[8]]$season
     #pulls out each game number from the scheduled games and stores it in a vector
-    games <- c()
     for (i in 1:length(list_of_games$dates[[1]]$games)) {
         games <- append(games, list_of_games$dates[[1]]$games[[i]]$gamePk)}
     games <- substr(games, 6, 10)
-    return(games)
+    return(list(games, season))
 }
 
-date <- Sys.Date()-1
+#function to create dummy variables to determine if 
+#event was committed by the home team
+is_home <- function(dataframe){
+    dataframe$is_home <- ifelse(dataframe$event_team == 
+                                    dataframe$home_team, 1 , 0)
+    return(dataframe)
+}
 
+#Try/Except block for when no games are played it will write "No games today" 
+#which the python scripts for sql insertion and twitter bot will catch and
+#break execution
 tryCatch(games <- get_games(date), 
          error = function(cond) {
              fileConn <- file('~/graphautomation/dailygames.txt')
@@ -3129,31 +3190,21 @@ tryCatch(games <- get_games(date),
 )
 
 
-daily_games <- c()
 
-daily_pbp <- NULL
 
-for(game_number in games){
+#Loops through game numbers in the daily_games vector and scrapes the data
+#for the game with that game id
+for(game_number in games[[1]]){
+    #scrapes NHL data for given game_number and stores it in a list
     pbp_list <- ds.compile_games(games = as.character(game_number),
-                                 season = "20172018",
+                                 season = games[[2]],
                                  pause = 2,
                                  try_tolerance = 5,
                                  agents = ds.user_agents)
     
+    #pulls out the actual pbp data from the list
     pbp_df <- pbp_list[[1]]
-    ################################################################################
-    #All code below here including xGmodel written by Matthew Barlowe @matt_barlowe#
-    #on twitter#####################################################################
-    library(magrittr)
-    library(dplyr)
-    library(tidyr)
-    library(ggplot2)
-    library(ggforce)
-    library(readr)
-    library(grid)
-    library(gridExtra)
-    library(stringr)
-    
+
     #loads xGmodel
     xGModel <-load('~/ProgrammingStuff/R/Rprojects/xGmodel/xGmodelver2.rda')
     home_team <- unique(pbp_df$home_team)[1]
@@ -3167,17 +3218,6 @@ for(game_number in games){
     even_strength <- c('5v5', '4v4', '3v3', 'EvE', '5v0')
     home_advantage <- c('5v4', '5v3', '4v3')
     away_advantage <- c('4v5', '3v5', '3v4')
-    #home_empty_net <- c('Ev5', 'Ev4', 'Ev3')
-    #away_empty_net <- c('5vE', '4vE', '3vE')
-    
-    #function to create dummy variables to determine if 
-    #event was committed by the home team
-    is_home <- function(dataframe){
-        dataframe$is_home <- ifelse(dataframe$event_team == 
-                                        dataframe$home_team, 1 , 0)
-        return(dataframe)
-    }
-    
     
     #removes shootout info from data frame and creates is_home dummy variable
     pbp_df <- pbp_df[pbp_df$game_period < 5,]
@@ -3237,7 +3277,6 @@ for(game_number in games){
                         & pbp_df$is_home == 0, 'SH', pbp_df$shooter_strength)
     pbp_df$shooter_strength <- ifelse(pbp_df$home_skaters < pbp_df$away_skaters
                         & pbp_df$is_home == 0, 'PP', pbp_df$shooter_strength)
-    
     pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% c('Ev0', '0vE'), 
                                                   'PS', pbp_df$shooter_strength)
     
@@ -3282,30 +3321,7 @@ for(game_number in games){
                           key = 'team', value = 'running_xg')
     
     
-    #assigns colors to each team for graphing purposes
-    team_colors <- c('black', 'darkred', 'gold', 'royalblue4', 'red3', 'firebrick1',
-                     'black', 'navy', 'maroon', 'red', 'darkgreen', 'navyblue', 
-                     'orange', 'mediumblue', 'slategrey', 'limegreen', 'darkgreen',
-                     'darkorange1', 'yellow2', 'mediumblue', 'steelblue4', 'red2',
-                     'lightseagreen', 'darkorange1', 'dodgerblue4', 'gold', 'gold',
-                     'dodgerblue3', 'dodgerblue3', 'navyblue', 'red1')
-    names(team_colors) <- c('ANA', 'ARI','BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'CBJ', 
-                            'COL', 'DET', 'DAL', 'FLA', 'EDM', 'MTL', 'L.A', 'N.J',
-                            'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
-                            'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
     
-    team_hashtags <- c('#LetsGoDucks', '#Yotes', '#NHLBruins', '#Sabres', '#CofRed',
-                       '#Redvolution', '#Blackhawks', '#CBJ', '#GoAvsGo', '#LGRW',
-                       '#GoStars', '#FlaPanthers', '#LetsGoOilers', '#GoHabsGo', 
-                       '#GoKingsGo', '#NJDevils', '#mnwild', '#Isles', '#Preds', 
-                       '#NYR', '#AllTogetherNowSTL', '#Sens', '#SJSharks', 
-                       '#LetsGoFlyers', '#Canucks', '#LetsGoPens', '#VegasBorn',
-                       '#GoBolts', '#TMLtalk', '#GoJetsGo', '#ALLCAPS')
-    
-    names(team_hashtags) <- c('ANA', 'ARI','BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'CBJ', 
-                            'COL', 'DET', 'DAL', 'FLA', 'EDM', 'MTL', 'L.A', 'N.J',
-                            'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
-                            'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
     #creates xG leaders for Each team
     fenwick_pbp <- filter(pbp_df, event_type %in% c("SHOT", "MISS", "GOAL"))
     groupd_player_xg <- fenwick_pbp %>% group_by(event_player_1, event_team) %>%
@@ -3320,14 +3336,15 @@ for(game_number in games){
                             'Expected Goals', Sys.Date()-1)
     xg_5v5_graph_title <- paste(away_team, '@', home_team, 
                                 '5v5 Expected Goals', Sys.Date()-1)
-    final_xg_score <- paste(away_team, format(xg_sums$xG[xg_sums$event_team==away_team], 
+    final_xg_score <- paste(away_team, 
+                            format(xg_sums$xG[xg_sums$event_team==away_team], 
                                               digits = 3), 
                             home_team, format(xg_sums$xG[xg_sums$event_team==home_team], 
-                                              digits = 3), 
-                            'Expected Goals')
+                                              digits = 3), 'Expected Goals')
     xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations', 
                                 Sys.Date()-1)
     
+    #Plots running xG for teams in all situations
     xG_plot_all_sits  <- ggplot(aes(x = game_seconds/60, y = running_xg), 
                 data = subset(xg_graph_df, xg_graph_df$team %in% c('run_home_xg',
                         'run_away_xg'))) +
@@ -3369,7 +3386,79 @@ for(game_number in games){
                         labs(title = xg_5v5_graph_title, subtitle = final_xg_score, 
                             caption = 'by @Matt_Barlowe')
    
+    #Calculate TOI for players both home and away
     
+    home1_TOI <- pbp_df %>% group_by(home_on_1) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    home2_TOI <- pbp_df %>% group_by(home_on_2) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    home3_TOI <- pbp_df %>% group_by(home_on_3) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    home4_TOI <- pbp_df %>% group_by(home_on_4) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    home5_TOI <- pbp_df %>% group_by(home_on_5) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    home6_TOI <- pbp_df %>% group_by(home_on_6) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    names(home1_TOI)[1] <- 'player'
+    names(home2_TOI)[1] <- 'player'
+    names(home3_TOI)[1] <- 'player'
+    names(home4_TOI)[1] <- 'player'
+    names(home5_TOI)[1] <- 'player'
+    names(home6_TOI)[1] <- 'player'
+    
+    home_TOI <- bind_rows(home1_TOI, home2_TOI, home3_TOI, home4_TOI, 
+                          home5_TOI, home6_TOI)
+    
+    home_TOI$team <- unique(pbp_df$home_team)
+    
+    home_TOI <- home_TOI %>% group_by(player, team) %>% 
+        summarise(TOI = sum(TOI))
+    
+    home_TOI <- na.omit(home_TOI)
+    
+    away1_TOI <- pbp_df %>% group_by(away_on_1) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    away2_TOI <- pbp_df %>% group_by(away_on_2) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    away3_TOI <- pbp_df %>% group_by(away_on_3) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    away4_TOI <- pbp_df %>% group_by(away_on_4) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    away5_TOI <- pbp_df %>% group_by(away_on_5) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    away6_TOI <- pbp_df %>% group_by(away_on_6) %>%
+        summarise(TOI = sum(event_length)/60)
+    
+    names(away1_TOI)[1] <- 'player'
+    names(away2_TOI)[1] <- 'player'
+    names(away3_TOI)[1] <- 'player'
+    names(away4_TOI)[1] <- 'player'
+    names(away5_TOI)[1] <- 'player'
+    names(away6_TOI)[1] <- 'player'
+    
+    away_TOI <- bind_rows(away1_TOI, away2_TOI, away3_TOI, away4_TOI, 
+                          away5_TOI, away6_TOI)
+    
+    away_TOI$team <- unique(pbp_df$away_team)
+    
+    away_TOI <- away_TOI %>% group_by(player, team) %>% 
+        summarise(TOI = sum(TOI))
+    
+    away_TOI <- na.omit(away_TOI)
+    
+    total_TOI <- rbind(home_TOI, away_TOI)
     #The code below calculates the xGF% for all situations and 5v5 for both
     #away and home teams
     
@@ -3470,18 +3559,27 @@ for(game_number in games){
     
     total_percent_stats <- bind_rows(home_xg, away_xg)
     
+    #joins iXG stats with on ice xG stats and percentages
     groupd_player_xg <- full_join(groupd_player_xg, total_percent_stats, 
                                   by = c('event_player_1'= 'player', 
                                          'event_team' = 'team'))
     
+    #Joins TOI with xG stats dataframe
+    groupd_player_xg <- full_join(groupd_player_xg, total_TOI, 
+                                  by = c('event_player_1'= 'player', 
+                                         'event_team' = 'team'))
+    
     groupd_player_xg[is.na(groupd_player_xg)] <- 0
+    
+    groupd_player_xg<- groupd_player_xg[,c(1,2,ncol(groupd_player_xg),
+                                           4:ncol(groupd_player_xg)-1)]
     
     groupd_player_xg$xGF <- format(groupd_player_xg$xGF, digits = 2)
     groupd_player_xg$xGA <- format(groupd_player_xg$xGA, digits = 2)
     groupd_player_xg$xGF_5v5 <- format(groupd_player_xg$xGF_5v5, digits = 2)
     groupd_player_xg$ixG <- format(groupd_player_xg$ixG, digits = 2)
     groupd_player_xg$xGA_5v5 <- format(groupd_player_xg$xGA_5v5, digits = 2)
-    
+    groupd_player_xg$TOI <- format(groupd_player_xg$TOI, digits = 4)
     
     
     #Creates tables of each team xG values and saves them to plots
@@ -3595,8 +3693,14 @@ for(game_number in games){
                            format(xg_sums$xG[xg_sums$event_team==home_team], 
                                               digits = 3), 'Goals:', home_goals))
 }    
+
+#writes the total daily pbp to a file and is delimited by | because commas from
+#line change columns will mess up sql insert
 write_delim(daily_pbp, '~/HockeyStuff/CompleteNHLPbPData/dailypbp', 
             delim = '|')
+
+#opens dailygames.txt file and updates with yesterdays game results in goals and
+#xg for twitter bot posts and then closes file
 fileConn <- file('~/graphautomation/dailygames.txt')
 writeLines(daily_games, fileConn)
 close(fileConn)
