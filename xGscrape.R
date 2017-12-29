@@ -3700,6 +3700,7 @@ for(game_number in games[[1]]){
 write_delim(daily_pbp, '~/HockeyStuff/CompleteNHLPbPData/dailypbp', 
             delim = '|')
 
+#this is a git test 
 #opens dailygames.txt file and updates with yesterdays game results in goals and
 #xg for twitter bot posts and then closes file
 fileConn <- file('~/graphautomation/dailygames.txt')
