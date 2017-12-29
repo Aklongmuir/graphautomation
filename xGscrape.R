@@ -3157,7 +3157,7 @@ get_games <- function(yesterday){
     list_of_games <- ds.get_schedule(yesterday,yesterday)
     
     #retrieves season from scheduled games
-    season <- list_of_games$dates[[1]]$games[[8]]$season
+    season <- list_of_games$dates[[1]]$games[[1]]$season
     #pulls out each game number from the scheduled games and stores it in a vector
     for (i in 1:length(list_of_games$dates[[1]]$games)) {
         games <- append(games, list_of_games$dates[[1]]$games[[i]]$gamePk)}
@@ -3172,6 +3172,7 @@ is_home <- function(dataframe){
                                     dataframe$home_team, 1 , 0)
     return(dataframe)
 }
+
 
 #Try/Except block for when no games are played it will write "No games today" 
 #which the python scripts for sql insertion and twitter bot will catch and
@@ -3678,7 +3679,7 @@ for(game_number in games[[1]]){
     ggsave('xGlocations.png', plot = xg_locations_plot, height = 4)
     ggsave('xGHome.png', home_table, height = 6, width = 12)
     ggsave('xGAway.png',  away_table, height = 6, width = 12)
-    write_csv(pbp_df, paste0(game_number, '.csv'))
+    write_delim(pbp_df, toString(game_number), delim = '|')
     
     #write team name and score to vector to write to text file to use as tweet
     #text
