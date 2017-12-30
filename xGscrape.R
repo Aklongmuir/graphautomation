@@ -3239,32 +3239,14 @@ for(game_number in games[[1]]){
     pbp_df <- pbp_df[pbp_df$game_period < 5,]
     pbp_df <- is_home(pbp_df)
     
-    #create score differential from home persepective and add four so it matches
-    #the column in my corsi adjustment dataframe
-    pbp_df$score_diff <- pbp_df$home_score - pbp_df$away_score
-    pbp_df$score_diff <- ifelse(pbp_df$score_diff > 3, 3, pbp_df$score_diff)
-    pbp_df$score_diff <- ifelse(pbp_df$score_diff < -3, -3, pbp_df$score_diff)
-    pbp_df$score_diff <- pbp_df$score_diff + 4
+    ############################################################################
+    ##Creating the model features including distance, angle, time diff between##
+    ##events, is_rebound, is shot on the rush, and shooter strength state.    ##
+    ############################################################################
     
     #calculating the time difference between each event in the game by seconds
     #this will be used later to calculate whether shot is rebound or on the rush
     pbp_df <- pbp_df %>% mutate(time_diff = game_seconds - lag(game_seconds))
-    
-    #creating running corsi totals for each team 
-    pbp_df$home_corsi <- ifelse(pbp_df$is_home == 1 & pbp_df$event_type %in% corsi, 1, 0)
-    pbp_df$away_corsi <- ifelse(pbp_df$is_home == 0 & pbp_df$event_type %in% corsi, 1, 0)
-    pbp_df <- pbp_df %>% mutate(home_corsi_total = cumsum(home_corsi))
-    pbp_df <- pbp_df %>% mutate(away_corsi_total = cumsum(away_corsi))
-    
-    #creates adjusted corsi columns by joining the score differential with the
-    #adjusted dataframe to create home and away adjustment vectors to multiple
-    #the home and away corsi columns by 
-    score_df <- data.frame(pbp_df$score_diff)
-    score_df <- inner_join(score_df, scoreadj_corsi, 
-                           by = c("pbp_df.score_diff"="home_lead"))
-    pbp_df$home_corsi_adj <- pbp_df$home_corsi * score_df$home_corsi_adj
-    pbp_df$away_corsi_adj <- pbp_df$away_corsi * score_df$away_corsi_adj
-    
     
     #creates the is_rebound dummy variable for each even and turns any NAs to zeros
     #just in case so the model doesn't throw an error 
@@ -3292,11 +3274,8 @@ for(game_number in games[[1]]){
     pbp_df$shot_angle <- ifelse(pbp_df$coords_x > 88 | pbp_df$coords_x < -88, 90 + 
                             (180-(90 + pbp_df$shot_angle)), pbp_df$shot_angle)
     
+    #calculates distance from net using pythagorean theorem
     pbp_df$distance <- sqrt((87.95 - abs(pbp_df$coords_x))^2 + pbp_df$coords_y^2)
-    
-    
-    
-    
     
     #if statements to determine shooter strength state based on vectors declared
     #at beginning of file
@@ -3310,20 +3289,24 @@ for(game_number in games[[1]]){
                         & pbp_df$is_home == 0, 'SH', pbp_df$shooter_strength)
     pbp_df$shooter_strength <- ifelse(pbp_df$home_skaters < pbp_df$away_skaters
                         & pbp_df$is_home == 0, 'PP', pbp_df$shooter_strength)
-    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% c('Ev0', '0vE'), 
-                                                  'PS', pbp_df$shooter_strength)
+    pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in% 
+                                          c('Ev0', '0vE'), 
+                                            'PS', pbp_df$shooter_strength)
+    ############################################################################
+    ##Calculates xG values for each event from the fenwick events subset of   ##
+    ## the pbp_df and then merges it back to the pbp_df.                      ##
+    ############################################################################
     
     #filters pbp dataframe to fenwick events and predict the xG of each event
     fenwick_pbp<- filter(pbp_df, event_type %in% c("SHOT", "MISS", "GOAL"))
     fenwick_pbp$xG <-predict(xGmodel, fenwick_pbp, type = 'response')
     
-    #merge the fenwick PbP xG values back with the main PbP dataframe and replacing
-    #any NAs with zeros
+    #merge the fenwick PbP xG values back with the main PbP dataframe and 
+    #replacing any NAs with zeros
     pbp_df <- merge(pbp_df, fenwick_pbp[, c('event_index', 'xG')], 
                     by = 'event_index', all.x = TRUE)
     
     pbp_df <- pbp_df %>% replace_na(list(xG= 0))
-    
     
     #creates new columns that seperates xG into home and away values to calculate
     #a running sum
@@ -3333,25 +3316,68 @@ for(game_number in games[[1]]){
                                  pbp_df$event_type %in% fenwick, pbp_df$xG, 0)
     
     #creating 5v5 xg values
-    pbp_df$home_5v5_xG <- ifelse(pbp_df$is_home == 1 & pbp_df$home_skaters == 5 &
-                                 pbp_df$away_skaters == 5 & pbp_df$event_type %in% 
-                                 fenwick, pbp_df$xG, 0)
-    
-    pbp_df$away_5v5_xG <- ifelse(pbp_df$is_home == 0 & pbp_df$home_skaters == 5 &
-                                     pbp_df$away_skaters == 5 & pbp_df$event_type %in% 
+    pbp_df$home_5v5_xG <- ifelse(pbp_df$is_home == 1 & 
+                                     pbp_df$home_skaters == 5 &
+                                     pbp_df$away_skaters == 5 & 
+                                     pbp_df$event_type %in% 
                                      fenwick, pbp_df$xG, 0)
     
-    #calculates the running sum for the step graphs for all situations and 5v5
-    pbp_df <- mutate(pbp_df, run_home_xg = cumsum(home_xG))
-    pbp_df <- mutate(pbp_df, run_away_xg = cumsum(away_xG))
-    pbp_df <- mutate(pbp_df, run_home_5v5_xg = cumsum(home_5v5_xG))
-    pbp_df <- mutate(pbp_df, run_away_5v5_xg = cumsum(away_5v5_xG))
+    pbp_df$away_5v5_xG <- ifelse(pbp_df$is_home == 0 & 
+                                     pbp_df$home_skaters == 5 & 
+                                     pbp_df$away_skaters == 5 & 
+                                     pbp_df$event_type %in% 
+                                     fenwick, pbp_df$xG, 0)
+    ############################################################################
     
-    #turns running sums of home and away xG values into long datat format inorder
-    #to step plot them
-    xg_graph_df <- gather(pbp_df, 'run_home_xg', 'run_away_xg', 'run_home_5v5_xg',
-                          'run_away_5v5_xg',
-                          key = 'team', value = 'running_xg')
+    ############################################################################
+    ##Calculate home and away corsi and fenwick and running values for each.  ##
+    ############################################################################
+    
+    #creating corsi and running corsi totals for each team 
+    pbp_df$home_corsi <- ifelse(pbp_df$is_home == 1 & 
+                                    pbp_df$event_type %in% corsi, 1, 0)
+    pbp_df$away_corsi <- ifelse(pbp_df$is_home == 0 & 
+                                    pbp_df$event_type %in% corsi, 1, 0)
+    pbp_df <- pbp_df %>% mutate(home_corsi_total = cumsum(home_corsi))
+    pbp_df <- pbp_df %>% mutate(away_corsi_total = cumsum(away_corsi))
+    
+    #creating fenwick running fenwick totals for each team 
+    pbp_df$home_fenwick <- ifelse(pbp_df$is_home == 1 & 
+                                    pbp_df$event_type %in% fenwick, 1, 0)
+    pbp_df$away_fenwick <- ifelse(pbp_df$is_home == 0 & 
+                                    pbp_df$event_type %in% fenwick, 1, 0)
+    pbp_df <- pbp_df %>% mutate(home_fenwick_total = cumsum(home_fenwick))
+    pbp_df <- pbp_df %>% mutate(away_fenwick_total = cumsum(away_fenwick))
+    
+    ############################################################################
+    ##Calculates score/venue adjusted corsi for both the home and away team   ##
+    ##from the adjustment dataframe.                                          ##
+    ############################################################################
+    
+    #create score differential from home persepective and add four so it matches
+    #the column in my corsi adjustment dataframe
+    pbp_df$score_diff <- pbp_df$home_score - pbp_df$away_score
+    pbp_df$score_diff <- ifelse(pbp_df$score_diff > 3, 3, pbp_df$score_diff)
+    pbp_df$score_diff <- ifelse(pbp_df$score_diff < -3, -3, pbp_df$score_diff)
+    pbp_df$score_diff <- pbp_df$score_diff + 4
+    
+    #creates adjusted corsi columns by joining the score differential with the
+    #adjusted dataframe to create home and away adjustment vectors to multiple
+    #the home and away corsi columns by 
+    score_df <- data.frame(pbp_df$score_diff)
+    score_df <- inner_join(score_df, scoreadj_corsi, 
+                           by = c("pbp_df.score_diff"="home_lead"))
+    pbp_df$home_corsi_adj <- pbp_df$home_corsi * score_df$home_corsi_adj
+    pbp_df$away_corsi_adj <- pbp_df$away_corsi * score_df$away_corsi_adj
+    
+    pbp_df$home_fenwick_adj <- pbp_df$home_fenwick * score_df$home_corsi_adj
+    pbp_df$away_fenwick_adj <- pbp_df$away_fenwick * score_df$away_corsi_adj
+    ############################################################################
+    
+    
+   
+    
+    
     
     
     
@@ -3364,61 +3390,6 @@ for(game_number in games[[1]]){
     xg_sums <- fenwick_pbp %>% group_by(event_team) %>% 
         dplyr::summarise( xG = sum(xG))
     
-    #creates title graph from team names and graphs running xG throughout the game
-    xg_graph_title <- paste(away_team, '@', home_team, 
-                            'Expected Goals', Sys.Date()-1)
-    xg_5v5_graph_title <- paste(away_team, '@', home_team, 
-                                '5v5 Expected Goals', Sys.Date()-1)
-    final_xg_score <- paste(away_team, 
-                            format(xg_sums$xG[xg_sums$event_team==away_team], 
-                                              digits = 3), 
-                            home_team, format(xg_sums$xG[xg_sums$event_team==home_team], 
-                                              digits = 3), 'Expected Goals')
-    xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations', 
-                                Sys.Date()-1)
-    
-    #Plots running xG for teams in all situations
-    xG_plot_all_sits  <- ggplot(aes(x = game_seconds/60, y = running_xg), 
-                data = subset(xg_graph_df, xg_graph_df$team %in% c('run_home_xg',
-                        'run_away_xg'))) +
-                geom_step(aes(color = team)) +
-                geom_point(aes(x = game_seconds/60, y = run_home_xg), 
-                data = subset(pbp_df, pbp_df$event_type == "GOAL" & 
-                    pbp_df$event_team ==
-                    pbp_df$home_team), shape = 13) +
-                geom_point(aes(x = game_seconds/60, y = run_away_xg), 
-                    data = subset(pbp_df, pbp_df$event_type == 'GOAL' & 
-                    pbp_df$event_team == pbp_df$away_team), shape = 13) +
-                geom_vline(xintercept = c(20, 40, 60, 65)) +
-                scale_color_manual(labels = c(away_team, home_team), 
-                    values = c("red", "blue")) +
-                xlab("Minutes") + ylab("Expected Goals") +
-                labs(title = xg_graph_title, subtitle = final_xg_score, 
-                    caption = 'by @Matt_Barlowe')
-    
-    #5v5 Running xG graph
-    xG_plot_5v5  <- ggplot(aes(x = game_seconds/60, y = running_xg), 
-                        data = subset(xg_graph_df, 
-                        xg_graph_df$team %in% c('run_home_5v5_xg',
-                                                'run_away_5v5_xg'))) +
-                        geom_step(aes(color = team)) +
-                        geom_point(aes(x = game_seconds/60, y = run_home_5v5_xg), 
-                            data = subset(pbp_df, pbp_df$event_type == "GOAL" & 
-                            pbp_df$event_team == pbp_df$home_team & 
-                            pbp_df$home_skaters == 5 & pbp_df$away_skaters == 5), 
-                            shape = 13) +
-                        geom_point(aes(x = game_seconds/60, y = run_away_5v5_xg), 
-                            data = subset(pbp_df, pbp_df$event_type == 'GOAL' & 
-                            pbp_df$event_team == pbp_df$away_team & 
-                            pbp_df$home_skaters == 5 & 
-                            pbp_df$away_skaters == 5), shape = 13) +
-                        geom_vline(xintercept = c(20, 40, 60, 65)) +
-                        scale_color_manual(labels = c(away_team, home_team), 
-                           values = c("red", "blue")) +
-                        xlab("Minutes") + ylab("Expected Goals") +
-                        labs(title = xg_5v5_graph_title, subtitle = final_xg_score, 
-                            caption = 'by @Matt_Barlowe')
-   
     #Calculate TOI for players both home and away
     
     home1_TOI <- pbp_df %>% group_by(home_on_1) %>%
@@ -3615,6 +3586,27 @@ for(game_number in games[[1]]){
     groupd_player_xg$TOI <- format(groupd_player_xg$TOI, digits = 3)
     
     
+    ############################################################################
+    ##Creates dataframe for running xG graphs and then plots of all situations##
+    ##running xg, 5v5 running xg, xg locations, and player stats including xGF##
+    ##xGA, TOI, xGF% and xGF% 5v5.                                            ##
+    ############################################################################
+    
+    #creates graph tiltes from team names and graphs running xG throughout the game
+    xg_graph_title <- paste(away_team, '@', home_team, 
+                            'Expected Goals', Sys.Date()-1)
+    
+    xg_5v5_graph_title <- paste(away_team, '@', home_team, 
+                                '5v5 Expected Goals', Sys.Date()-1)
+    
+    final_xg_score <- paste(away_team, 
+                            format(xg_sums$xG[xg_sums$event_team==away_team], 
+                                   digits = 3), home_team, 
+                            format(xg_sums$xG[xg_sums$event_team==home_team], 
+                                   digits = 3), 'Expected Goals')
+    
+    xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations', 
+                                Sys.Date()-1)
     #Creates tables of each team xG values and saves them to plots
     away_xG_table <- arrange(subset(groupd_player_xg, 
                             groupd_player_xg$event_team == away_team), 
@@ -3629,6 +3621,18 @@ for(game_number in games[[1]]){
     
     
     
+    #calculates the running sum for the step graphs for all situations and 5v5
+    pbp_df <- mutate(pbp_df, run_home_xg = cumsum(home_xG))
+    pbp_df <- mutate(pbp_df, run_away_xg = cumsum(away_xG))
+    pbp_df <- mutate(pbp_df, run_home_5v5_xg = cumsum(home_5v5_xG))
+    pbp_df <- mutate(pbp_df, run_away_5v5_xg = cumsum(away_5v5_xG))
+    
+    #turns running sums of home and away xG values into long data format inorder
+    #to step plot them
+    xg_graph_df <- gather(pbp_df, 'run_home_xg', 'run_away_xg', 'run_home_5v5_xg',
+                          'run_away_5v5_xg',
+                          key = 'team', value = 'running_xg')
+    
     #mirrors the y locations for the home and away teams on the offsides from where
     #they will be graphed so the correct Ice Locations will be shown on the xG 
     #location graphs
@@ -3642,6 +3646,51 @@ for(game_number in games[[1]]){
                                 -xG_location_graph$coords_y, 
                                 xG_location_graph$coords_y)
     
+    #Plots running xG for teams in all situations
+    xG_plot_all_sits <- ggplot(aes(x = game_seconds/60, y = running_xg), 
+                                data = subset(xg_graph_df, 
+                                xg_graph_df$team %in% c('run_home_xg',
+                                'run_away_xg'))) +
+                        geom_step(aes(color = team)) +
+                        geom_point(aes(x = game_seconds/60, y = run_home_xg), 
+                                data = subset(pbp_df, 
+                                pbp_df$event_type == "GOAL" & 
+                                pbp_df$event_team ==
+                                pbp_df$home_team), shape = 13) +
+                        geom_point(aes(x = game_seconds/60, y = run_away_xg), 
+                                data = subset(pbp_df, 
+                                pbp_df$event_type == 'GOAL' & 
+                                pbp_df$event_team == pbp_df$away_team), 
+                                shape = 13) +
+                        geom_vline(xintercept = c(20, 40, 60, 65)) +
+                        scale_color_manual(labels = c(away_team, home_team), 
+                                values = c("red", "blue")) +
+                        xlab("Minutes") + ylab("Expected Goals") +
+                        labs(title = xg_graph_title, subtitle = final_xg_score, 
+                            caption = 'by @Matt_Barlowe')
+    
+    #5v5 Running xG graph
+    xG_plot_5v5  <- ggplot(aes(x = game_seconds/60, y = running_xg), 
+                            data = subset(xg_graph_df, 
+                            xg_graph_df$team %in% c('run_home_5v5_xg',
+                            'run_away_5v5_xg'))) +
+                    geom_step(aes(color = team)) +
+                    geom_point(aes(x = game_seconds/60, y = run_home_5v5_xg), 
+                        data = subset(pbp_df, pbp_df$event_type == "GOAL" & 
+                        pbp_df$event_team == pbp_df$home_team & 
+                        pbp_df$home_skaters == 5 & 
+                        pbp_df$away_skaters == 5), shape = 13) +
+                    geom_point(aes(x = game_seconds/60, y = run_away_5v5_xg), 
+                        data = subset(pbp_df, pbp_df$event_type == 'GOAL' & 
+                        pbp_df$event_team == pbp_df$away_team & 
+                        pbp_df$home_skaters == 5 & 
+                        pbp_df$away_skaters == 5), shape = 13) +
+                    geom_vline(xintercept = c(20, 40, 60, 65)) +
+                    scale_color_manual(labels = c(away_team, home_team), 
+                        values = c("red", "blue")) +
+                    xlab("Minutes") + ylab("Expected Goals") +
+                    labs(title = xg_5v5_graph_title, subtitle = final_xg_score, 
+                        caption = 'by @Matt_Barlowe')
     
     #plots xG locations and values for each team
     xg_locations_plot <- ggplot() +
@@ -3698,9 +3747,16 @@ for(game_number in games[[1]]){
                    color = 'red', size = 2) +
         scale_y_continuous(limits = c(-42, 42))
     
-    #adding play by play data to one dataframe to save to a file for sql 
-    #insertion
+    ############################################################################
+    ##Saves all graphs to a folder designated by game number and adds the full##
+    ##pbp_df to another df that will be written for insertion to the sql db   ##
+    ##also saves the results of each game in goals and xG and game number to a##
+    ##text file that will be used by the twitter bot when it uploads each days##
+    ##results to twitter the next day.                                        ##
+    ############################################################################
     
+    #saves this loop iterations pbp_df to the df that will be written to text
+    #after loops completion
     daily_pbp <- rbind(daily_pbp, pbp_df)
         
     #saves all the plots to png files and folder labeled with game number
@@ -3715,8 +3771,8 @@ for(game_number in games[[1]]){
     
     #write team name and score to vector to write to text file to use as tweet
     #text
-    away_goals <- pbp_df$away_score[length(pbp_df$away_score)]
-    home_goals <- pbp_df$home_score[length(pbp_df$home_score)]
+    away_goals <- last(pbp_df$away_score)
+    home_goals <- last(pbp_df$home_score)
     
     daily_games <- c(daily_games, game_number, 
                      paste(team_hashtags[away_team], 'xG:',
@@ -3727,12 +3783,16 @@ for(game_number in games[[1]]){
                                               digits = 3), 'Goals:', home_goals))
 }    
 
+################################################################################
+##Writing Data results.                                                       ##
+################################################################################
+
 #writes the total daily pbp to a file and is delimited by | because commas from
 #line change columns will mess up sql insert
 write_delim(daily_pbp, '~/HockeyStuff/CompleteNHLPbPData/dailypbp', 
             delim = '|')
 
-#this is a git test 
+ 
 #opens dailygames.txt file and updates with yesterdays game results in goals and
 #xg for twitter bot posts and then closes file
 fileConn <- file('~/graphautomation/dailygames.txt')
