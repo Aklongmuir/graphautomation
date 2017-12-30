@@ -3206,23 +3206,45 @@ for(game_number in games[[1]]){
     #pulls out the actual pbp data from the list
     pbp_df <- pbp_list[[1]]
 
+    # Create Score Adjust Data Frame / xG adjustment courtesy of @EvolvingWild
+    #on twitter
+    
+    
+    scoreadj_corsi <- data.frame(matrix(nrow = 7, ncol = 3))
+    scoreadj_corsi[, 1] <- c(1, 2, 3, 4, 5, 6, 7)
+    scoreadj_corsi[, 2] <- c(0.840, 0.865, 0.898, 0.970, 1.052, 1.104, 1.138)
+    scoreadj_corsi[, 3] <- c(1.236, 1.186, 1.128, 1.032, 0.953, 0.914, 0.892)
+    colnames(scoreadj_corsi) <- c("home_lead", "home_corsi_adj", "away_corsi_adj")
+    
+    
+    
+    xG_adj_h <- 0.9468472
+    xG_adj_a <- 1.059477
+    
     #loads xGmodel
     xGModel <-load('~/ProgrammingStuff/R/Rprojects/xGmodel/xGmodelver2.rda')
-    home_team <- unique(pbp_df$home_team)[1]
-    away_team <- unique(pbp_df$away_team)[1]
+    home_team <- first(pbp_df$home_team)
+    away_team <- first(pbp_df$away_team)
     
     #vectors used to subset the pbp data depending on event types
     corsi <- c('SHOT', 'MISS', 'BLOCK', 'GOAL')
     fenwick <- c('SHOT', 'MISS', 'GOAL')
     
     #game strength states vectors used to determine shooter strength state
-    even_strength <- c('5v5', '4v4', '3v3', 'EvE', '5v0')
+    even_strength <- c('5v5', '4v4', '3v3', 'EvE')
     home_advantage <- c('5v4', '5v3', '4v3')
     away_advantage <- c('4v5', '3v5', '3v4')
     
     #removes shootout info from data frame and creates is_home dummy variable
     pbp_df <- pbp_df[pbp_df$game_period < 5,]
     pbp_df <- is_home(pbp_df)
+    
+    #create score differential from home persepective and add four so it matches
+    #the column in my corsi adjustment dataframe
+    pbp_df$score_diff <- pbp_df$home_score - pbp_df$away_score
+    pbp_df$score_diff <- ifelse(pbp_df$score_diff > 3, 3, pbp_df$score_diff)
+    pbp_df$score_diff <- ifelse(pbp_df$score_diff < -3, -3, pbp_df$score_diff)
+    pbp_df$score_diff <- pbp_df$score_diff + 4
     
     #calculating the time difference between each event in the game by seconds
     #this will be used later to calculate whether shot is rebound or on the rush
@@ -3233,6 +3255,16 @@ for(game_number in games[[1]]){
     pbp_df$away_corsi <- ifelse(pbp_df$is_home == 0 & pbp_df$event_type %in% corsi, 1, 0)
     pbp_df <- pbp_df %>% mutate(home_corsi_total = cumsum(home_corsi))
     pbp_df <- pbp_df %>% mutate(away_corsi_total = cumsum(away_corsi))
+    
+    #creates adjusted corsi columns by joining the score differential with the
+    #adjusted dataframe to create home and away adjustment vectors to multiple
+    #the home and away corsi columns by 
+    score_df <- data.frame(pbp_df$score_diff)
+    score_df <- inner_join(score_df, scoreadj_corsi, 
+                           by = c("pbp_df.score_diff"="home_lead"))
+    pbp_df$home_corsi_adj <- pbp_df$home_corsi * score_df$home_corsi_adj
+    pbp_df$away_corsi_adj <- pbp_df$away_corsi * score_df$away_corsi_adj
+    
     
     #creates the is_rebound dummy variable for each even and turns any NAs to zeros
     #just in case so the model doesn't throw an error 
