@@ -70,7 +70,6 @@ def daily_games_post(bot_api, games_file, date):
     for line in games_file.readlines():
         games_text.append(line)
 
-    print(games_text)
     #Checks to see if games were played and if not ends function execution
     if games_text[0].strip() == "No games today":
         print("No games today")
@@ -130,6 +129,7 @@ def main():
         pass
     else:
         top5_post(api, top5)
+        print("Yesterday's gaes posted")
 
     games.close()
     top5.close()
