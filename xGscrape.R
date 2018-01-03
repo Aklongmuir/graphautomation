@@ -3204,7 +3204,8 @@ for(game_number in games[[1]]){
                                  try_tolerance = 5,
                                  agents = ds.user_agents)
     
-    #pulls out the actual pbp data from the list
+    
+#pulls out the actual pbp data from the list
     pbp_df <- pbp_list[[1]]
 
     # Create Score Adjust Data Frame / xG adjustment courtesy of @EvolvingWild
@@ -3393,13 +3394,13 @@ for(game_number in games[[1]]){
     
     
     #creates xG leaders for Each team
-    fenwick_pbp <- filter(pbp_df, event_type %in% c("SHOT", "MISS", "GOAL"))
-    groupd_player_xg <- fenwick_pbp %>% group_by(event_player_1, event_team) %>%
-        dplyr::summarise(ixG = sum(xG))
+    #fenwick_pbp <- filter(pbp_df, event_type %in% c("SHOT", "MISS", "GOAL"))
+    #groupd_player_xg <- fenwick_pbp %>% group_by(event_player_1, event_team) %>%
+        #dplyr::summarise(ixG = sum(xG))
     
     #Sums xG by team
     xg_sums <- fenwick_pbp %>% group_by(event_team) %>% 
-        dplyr::summarise( xG = sum(home_xG_adj))
+        dplyr::summarise( xG = sum(xG))
     
     ############################################################################
     ##Calculate home and away goals and assists stats and store in a dataframe##
@@ -3562,7 +3563,7 @@ for(game_number in games[[1]]){
         G60 = (G/TOI) * 60,
         A160 = (A1/TOI) * 60,
         A260 = (A2/TOI) * 60,
-        P60 = ((G60 + A160 + A260)/TOI) * 60,
+        P60 = ((G + A1 + A2)/TOI) * 60,
         ixG60 = (ixG/TOI) * 60
     )
     
@@ -3700,7 +3701,7 @@ for(game_number in games[[1]]){
         G60 = (G/TOI) * 60,
         A160 = (A1/TOI) * 60,
         A260 = (A2/TOI) * 60,
-        P60 = ((G60 + A160 + A260)/TOI) * 60,
+        P60 = ((G + A1 + A2)/TOI) * 60,
         ixG60 = (ixG/TOI) * 60
     )
     
@@ -3750,16 +3751,31 @@ for(game_number in games[[1]]){
     ############################################################################
     
     ############################################################################
-    ##Create total team adjusted statistics.                                  ##
+    ##Create total team adjusted statistics all situations.                   ##
     ############################################################################
     
-    team_adj_stats_all_sits <- daily_adjusted_player_stats %>% 
-        group_by(team) %>%
-        summarise(TOI = sum(TOI), CF = sum(CF), CA = sum(CA), 
-                  C_plus_minus = sum(C_plus_minus),
-                  FF = sum(FF), FA = sum(FA),
-                  xGF = sum(xGF), xGA = sum(xGA),
-                  GF = sum(G), A1 = sum(A1), A2 = sum(A2))
+    home_team_adj_stats_all_sits <- pbp_df %>% 
+        summarise(Team = first(pbp_df$home_team), game_id = first(pbp_df$game_id),
+                  game_date = first(game_date),
+                  TOI = last(game_seconds)/60, CF = sum(home_corsi_adj), 
+                  CA = sum(away_corsi_adj), 
+                  C_plus_minus = CF - CA,
+                  FF = sum(home_fenwick_adj), FA = sum(away_fenwick_adj),
+                  xGF = sum(home_xG_adj), xGA = sum(away_xG_adj),
+                  GF = sum(home_goal), GA = sum(away_goal))
+    
+    away_team_adj_stats_all_sits <- pbp_df %>% 
+        summarise(Team = first(pbp_df$away_team), game_id = first(pbp_df$game_id),
+                  game_date = first(game_date),
+                  TOI = last(game_seconds)/60, CF = sum(away_corsi_adj), 
+                  CA = sum(home_corsi_adj), 
+                  C_plus_minus = CF - CA,
+                  FF = sum(away_fenwick_adj), FA = sum(home_fenwick_adj),
+                  xGF = sum(away_xG_adj), xGA = sum(home_xG_adj),
+                  GF = sum(away_goal), GA = sum(home_goal))
+    
+    team_adj_stats_all_sits <- rbind(home_team_adj_stats_all_sits, 
+                                     away_team_adj_stats_all_sits)
     
     team_adj_stats_all_sits <- team_adj_stats_all_sits %>% mutate(
         CF60 = (CF/TOI) * 60, 
@@ -3772,219 +3788,14 @@ for(game_number in games[[1]]){
         xGF60 = (xGF/TOI) * 60,
         xGA60 = (xGA/TOI) * 60,
         xGF_per = (xGF/(xGF + xGA)) * 100,
-        G60 = (GF/TOI) * 60,
-        A160 = (A1/TOI) * 60,
-        A260 = (A2/TOI) * 60,
-        P60 = ((G60 + A160 + A260)/TOI) * 60
+        G60 = (GF/TOI) * 60
     )
     
     #add date and game id to the stats and denote which was home team
-    team_adj_stats_all_sits$game_id <- first(pbp_df$game_id)
-    team_adj_stats_all_sits$game_date <- first(pbp_df$game_date)
-    team_adj_stats_all_sits$is_home <- ifelse(team_adj_stats_all_sits$team == 
+    team_adj_stats_all_sits$is_home <- ifelse(team_adj_stats_all_sits$Team == 
                                                   first(pbp_df$home_team), 1, 0)
                   
-    #Calculate TOI for players both home and away
     
-    home1_all_sits <- pbp_df %>% group_by(home_on_1) %>%
-        summarise(TOI = sum(event_length)/60, xGF = sum(home_xG), 
-                  xGA = sum(away_xG), CF = sum(home_corsi), CA = sum(away_corsi),
-                  FF = sum(home_fenwick), FA = sum(away_fenwick), 
-                  adj_CF = sum(home_corsi_adj), adj_CA = sum(away_corsi_adj),
-                  adj_FF = sum(home_fenwick_adj), adj_FA = sum(away_corsi_adj),
-                  CF60 = ((sum(home_corsi)/(sum(event_length)/60))*60), 
-                  CA60 = ((sum(away_corsi)/(sum(event_length)/60))*60))
-    
-    home2_TOI <- pbp_df %>% group_by(home_on_2) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    home3_TOI <- pbp_df %>% group_by(home_on_3) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    home4_TOI <- pbp_df %>% group_by(home_on_4) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    home5_TOI <- pbp_df %>% group_by(home_on_5) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    home6_TOI <- pbp_df %>% group_by(home_on_6) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    names(home1_TOI)[1] <- 'player'
-    names(home2_TOI)[1] <- 'player'
-    names(home3_TOI)[1] <- 'player'
-    names(home4_TOI)[1] <- 'player'
-    names(home5_TOI)[1] <- 'player'
-    names(home6_TOI)[1] <- 'player'
-    
-    home_TOI <- bind_rows(home1_TOI, home2_TOI, home3_TOI, home4_TOI, 
-                          home5_TOI, home6_TOI)
-    
-    home_TOI$team <- unique(pbp_df$home_team)
-    
-    home_TOI <- home_TOI %>% group_by(player, team) %>% 
-        summarise(TOI = sum(TOI))
-    
-    home_TOI <- na.omit(home_TOI)
-    
-    away1_TOI <- pbp_df %>% group_by(away_on_1) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    away2_TOI <- pbp_df %>% group_by(away_on_2) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    away3_TOI <- pbp_df %>% group_by(away_on_3) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    away4_TOI <- pbp_df %>% group_by(away_on_4) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    away5_TOI <- pbp_df %>% group_by(away_on_5) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    away6_TOI <- pbp_df %>% group_by(away_on_6) %>%
-        summarise(TOI = sum(event_length)/60)
-    
-    names(away1_TOI)[1] <- 'player'
-    names(away2_TOI)[1] <- 'player'
-    names(away3_TOI)[1] <- 'player'
-    names(away4_TOI)[1] <- 'player'
-    names(away5_TOI)[1] <- 'player'
-    names(away6_TOI)[1] <- 'player'
-    
-    away_TOI <- bind_rows(away1_TOI, away2_TOI, away3_TOI, away4_TOI, 
-                          away5_TOI, away6_TOI)
-    
-    away_TOI$team <- unique(pbp_df$away_team)
-    
-    away_TOI <- away_TOI %>% group_by(player, team) %>% 
-        summarise(TOI = sum(TOI))
-    
-    away_TOI <- na.omit(away_TOI)
-    
-    total_TOI <- rbind(home_TOI, away_TOI)
-    #The code below calculates the xGF% for all situations and 5v5 for both
-    #away and home teams
-    
-    home1_TOI <- pbp_df %>% group_by(home_on_1) %>%
-        summarise(TOI = sum(event_length)/60, xGF = sum(home_xG), 
-                  xGA = sum(away_xG), CF = sum(home_corsi), CA = sum(away_corsi),
-                  FF = sum(home_fenwick), FA = sum(away_fenwick))
-    
-    home2 <- fenwick_pbp %>% group_by(home_on_2) %>% 
-        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
-                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
-    
-    home3 <- fenwick_pbp %>% group_by(home_on_3) %>% 
-        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
-                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
-    
-    home4 <- fenwick_pbp %>% group_by(home_on_4) %>% 
-        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
-                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
-    
-    home5 <- fenwick_pbp %>% group_by(home_on_5) %>% 
-        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
-                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
-    
-    home6 <- fenwick_pbp %>% group_by(home_on_6) %>% 
-        summarise(xGF = sum(home_xG), xGA = sum(away_xG), 
-                  xGF_5 = sum(home_5v5_xG), xGA_5 = sum(away_5v5_xG))
-    
-    names(home1)[1] <- 'player'
-    names(home2)[1] <- 'player'
-    names(home3)[1] <- 'player'
-    names(home4)[1] <- 'player'
-    names(home5)[1] <- 'player'
-    names(home6)[1] <- 'player'
-    
-    
-    home_xg <- bind_rows(home1, home2, home3, home4, home5, home6)
-    
-    home_xg$team <- unique(fenwick_pbp$home_team)
-    
-    home_xg <- home_xg %>% group_by(player, team) %>% 
-        summarise(xGF = sum(xGF), xGA = sum(xGA), xGF_5v5 = sum(xGF_5), 
-                  xGA_5v5 = sum(xGA_5))
-    
-    home_xg <- mutate(home_xg, xGFpercent = xGF/(xGF + xGA) * 100, 
-                      xGF_5v5_percent = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
-    
-    home_xg$xGF_5v5_percent <- format(home_xg$xGF_5v5_percent, digits = 4)
-    home_xg$xGFpercent <- format(home_xg$xGFpercent, digits = 4)
-    
-    home_xg <- na.omit(home_xg)
-    
-    away1 <- fenwick_pbp %>% group_by(away_on_1) %>% 
-        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
-                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
-    
-    away2 <- fenwick_pbp %>% group_by(away_on_2) %>% 
-        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
-                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
-    
-    away3 <- fenwick_pbp %>% group_by(away_on_3) %>% 
-        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
-                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
-    
-    away4 <- fenwick_pbp %>% group_by(away_on_4) %>% 
-        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
-                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
-    
-    away5 <- fenwick_pbp %>% group_by(away_on_5) %>% 
-        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
-                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
-    
-    away6 <- fenwick_pbp %>% group_by(away_on_6) %>% 
-        summarise(xGF = sum(away_xG), xGA = sum(home_xG), 
-                  xGF_5 = sum(away_5v5_xG), xGA_5 = sum(home_5v5_xG))
-    
-    names(away1)[1] <- 'player'
-    names(away2)[1] <- 'player'
-    names(away3)[1] <- 'player'
-    names(away4)[1] <- 'player'
-    names(away5)[1] <- 'player'
-    names(away6)[1] <- 'player'
-    
-    away_xg <- bind_rows(away1, away2, away3, away4, away5, away6)
-    
-    away_xg$team <- unique(fenwick_pbp$away_team)
-    
-    away_xg <- away_xg %>% group_by(player, team) %>% 
-        summarise(xGF = sum(xGF), xGA = sum(xGA), xGF_5v5 = sum(xGF_5), 
-                  xGA_5v5 = sum(xGA_5))
-    
-    away_xg <- mutate(away_xg, xGFpercent = xGF/(xGF + xGA) * 100, 
-                      xGF_5v5_percent = xGF_5v5/(xGF_5v5 + xGA_5v5) * 100)
-    
-    away_xg$xGF_5v5_percent <- format(away_xg$xGF_5v5_percent, digits = 4)
-    away_xg$xGFpercent <- format(away_xg$xGFpercent, digits = 4)
-    
-    away_xg <- na.omit(away_xg)
-    
-    total_percent_stats <- bind_rows(home_xg, away_xg)
-    
-    #joins iXG stats with on ice xG stats and percentages
-    groupd_player_xg <- full_join(groupd_player_xg, total_percent_stats, 
-                                  by = c('event_player_1'= 'player', 
-                                         'event_team' = 'team'))
-    
-    #Joins TOI with xG stats dataframe
-    groupd_player_xg <- full_join(groupd_player_xg, total_TOI, 
-                                  by = c('event_player_1'= 'player', 
-                                         'event_team' = 'team'))
-    
-    groupd_player_xg[is.na(groupd_player_xg)] <- 0
-    
-    groupd_player_xg<- groupd_player_xg[,c(1,2,ncol(groupd_player_xg),
-                                           4:ncol(groupd_player_xg)-1)]
-    
-    groupd_player_xg$xGF <- format(groupd_player_xg$xGF, digits = 2)
-    groupd_player_xg$xGA <- format(groupd_player_xg$xGA, digits = 2)
-    groupd_player_xg$xGF_5v5 <- format(groupd_player_xg$xGF_5v5, digits = 2)
-    groupd_player_xg$ixG <- format(groupd_player_xg$ixG, digits = 2)
-    groupd_player_xg$xGA_5v5 <- format(groupd_player_xg$xGA_5v5, digits = 2)
-    groupd_player_xg$TOI <- format(groupd_player_xg$TOI, digits = 3)
     
     
     ############################################################################
