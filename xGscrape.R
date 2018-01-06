@@ -3197,11 +3197,25 @@ tryCatch(games <- get_games(date),
 #for the game with that game id
 for(game_number in games[[1]]){
     #scrapes NHL data for given game_number and stores it in a list
-    pbp_list <- ds.compile_games(games = as.character(game_number),
+    pbp_list <- NULL
+    pbp_list <- tryCatch(
+         {
+             pbp_list<-ds.compile_games(games = as.character(game_number),
                                  season = games[[2]],
                                  pause = 2,
                                  try_tolerance = 5,
                                  agents = ds.user_agents)
+             
+         },
+             
+            error = function(cond) {
+                fileConn <- file('~/graphautomation/dailyerror.txt')
+                writeLines(c(as.character(game_number)), fileConn)
+                close(fileConn)
+                return(NULL)
+                }
+    )
+    if(length(pbp_list) == 0){next}             
     
     #pulls out the actual pbp data from the list
     pbp_df <- pbp_list[[1]]
