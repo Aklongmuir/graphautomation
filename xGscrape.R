@@ -3713,12 +3713,16 @@ for(game_number in games[[1]]){
 #line change columns will mess up sql insert
 write_delim(daily_pbp, '~/HockeyStuff/CompleteNHLPbPData/dailypbp', 
             delim = '|')
-#log the games the scraper can't scrape
-fileConn <- file('~/graphautomation/dailyerror.txt', open = "a")
-writeLines(unscraped_games, fileConn)
-close(fileConn)
+
 #opens dailygames.txt file and updates with yesterdays game results in goals and
 #xg for twitter bot posts and then closes file
 fileConn <- file('~/graphautomation/dailygames.txt')
 writeLines(daily_games, fileConn)
 close(fileConn)
+
+#log the games the scraper can't scrape
+if (length(unscraped_games) > 0){
+    fileConn <- file('~/graphautomation/dailyerror.txt', open = "a")
+    writeLines(unscraped_games, fileConn)
+    close(fileConn)
+}
