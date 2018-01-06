@@ -3209,6 +3209,7 @@ for(game_number in games[[1]]){
              
          },
              error = function(cond) {
+                message("Error scraping game")
                 return(NULL)
                 }
     )
@@ -3346,6 +3347,11 @@ for(game_number in games[[1]]){
     xg_sums <- fenwick_pbp %>% group_by(event_team) %>% 
         dplyr::summarise( xG = sum(xG))
     
+    xg_sums_5v5 <- subset(fenwick_pbp, fenwick_pbp$home_skaters == 5 & 
+                              fenwick_pbp$away_skaters == 5) %>%
+        group_by(event_team) %>%
+        dplyr::summarise(xG = sum(xG))
+    
     #creates title graph from team names and graphs running xG throughout the game
     xg_graph_title <- paste(away_team, '@', home_team, 
                             'Expected Goals', Sys.Date()-1)
@@ -3356,8 +3362,22 @@ for(game_number in games[[1]]){
                                               digits = 3), 
                             home_team, format(xg_sums$xG[xg_sums$event_team==home_team], 
                                               digits = 3), 'Expected Goals')
+    final_xg_score_5v5 <- paste('5v5', away_team, 
+                                format(xg_sums_5v5$xG[xg_sums_5v5$event_team==away_team], 
+                                       digits = 3), 
+                                home_team, 
+                                format(xg_sums_5v5$xG[xg_sums_5v5$event_team==home_team], 
+                                                  digits = 3), 'Expected Goals')
+    
     xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations', 
                                 Sys.Date()-1)
+    
+    final_xg_score_location <- paste(away_team, "(Right)",
+                            format(xg_sums$xG[xg_sums$event_team==away_team], 
+                                   digits = 3), 
+                            home_team, "(Left)", 
+                            format(xg_sums$xG[xg_sums$event_team==home_team], 
+                                              digits = 3), 'Expected Goals')
     
     #Plots running xG for teams in all situations
     xG_plot_all_sits  <- ggplot(aes(x = game_seconds/60, y = running_xg), 
@@ -3398,7 +3418,7 @@ for(game_number in games[[1]]){
                         scale_color_manual(labels = c(away_team, home_team), 
                            values = c("red", "blue")) +
                         xlab("Minutes") + ylab("Expected Goals") +
-                        labs(title = xg_5v5_graph_title, subtitle = final_xg_score, 
+                        labs(title = xg_5v5_graph_title, subtitle = final_xg_score_5v5, 
                             caption = 'by @Matt_Barlowe')
    
     #Calculate TOI for players both home and away
@@ -3644,8 +3664,8 @@ for(game_number in games[[1]]){
             subset(fenwick_pbp, fenwick_pbp$event_team == away_team & 
             fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[away_team],
             shape = 15) +
-        labs(title = xg_locations_title, subtitle = final_xg_score, 
-             caption = 'by @Matt_Barlowe') + 
+        labs(title = xg_locations_title, subtitle = final_xg_score_location, 
+             caption = 'by @Matt_Barlowe', x = 'Test') + 
         geom_segment(aes(x = -87.95, y = -39, xend = -87.95, yend = 39), color = 'red') +
         geom_segment(aes(x = 87.95, y = -39, xend = 87.95, yend = 39), color = 'red') +
         geom_segment(aes(x = 0, y = -42, xend = 0, yend = 42), color = 'red') +
