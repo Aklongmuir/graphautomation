@@ -3120,6 +3120,7 @@ date <- Sys.Date()-1
 #insertion
 daily_games <- c()
 daily_pbp <- NULL
+unscraped_games <-c()
 
 #assigns colors to each team for graphing purposes
 team_colors <- c('black', 'darkred', 'gold', 'royalblue4', 'red3', 'firebrick1',
@@ -3207,15 +3208,14 @@ for(game_number in games[[1]]){
                                  agents = ds.user_agents)
              
          },
-             
-            error = function(cond) {
-                fileConn <- file('~/graphautomation/dailyerror.txt')
-                writeLines(c(as.character(game_number)), fileConn)
-                close(fileConn)
+             error = function(cond) {
                 return(NULL)
                 }
     )
-    if(length(pbp_list) == 0){next}             
+    if(length(pbp_list) == 0){
+        unscraped_games <- c(as.character(game_number), unscraped_games)
+        next
+        }             
     
     #pulls out the actual pbp data from the list
     pbp_df <- pbp_list[[1]]
@@ -3713,7 +3713,10 @@ for(game_number in games[[1]]){
 #line change columns will mess up sql insert
 write_delim(daily_pbp, '~/HockeyStuff/CompleteNHLPbPData/dailypbp', 
             delim = '|')
-
+#log the games the scraper can't scrape
+fileConn <- file('~/graphautomation/dailyerror.txt', open = "a")
+writeLines(unscraped_games, fileConn)
+close(fileConn)
 #opens dailygames.txt file and updates with yesterdays game results in goals and
 #xg for twitter bot posts and then closes file
 fileConn <- file('~/graphautomation/dailygames.txt')
