@@ -9,5 +9,6 @@ Included is a python script to read from various text files and post the content
 the keys from a text file using this format `key_name: key`.  It also takes command line arguments detailed in the doc string
 of the script.
 
-Stats now include TOI, xGF, xGA, xGF%, xGF% 5v5 with soon to come all those stats plus CF, FF, CA, FA both 5v5 and score and venue
-adjusted as well as xG adjusted.
+Stats the scraper compiles include CF, CA, CF%, FF, FA, FF%, GF, GA, G, A1, A2, xGF, xGA, xGF%.
+This includes the rate stats for G, A, Corsi, Fenwick, xG.  These stats are compiled at both a
+player level and a team level both 5v5/all situations plus adjusted for score/venue and raw.
