@@ -4881,8 +4881,8 @@ for(game_number in games[[1]]){
     daily_pbp <- rbind(daily_pbp, pbp_df)
 
     #saves all the plots to png files and folder labeled with game number
-    dir.create(paste0('~/HockeyStuff/xGGameBreakdowns/2018_backup/', str_trim(game_number)))
-    setwd(paste0('~/HockeyStuff/xGGameBreakdowns/2018_backup/', str_trim(game_number)))
+    dir.create(paste0('~/HockeyStuff/xGGameBreakdowns/2018/', str_trim(game_number)))
+    setwd(paste0('~/HockeyStuff/xGGameBreakdowns/2018/', str_trim(game_number)))
     ggsave('RunningxG.png', plot = xG_plot_all_sits, height = 5)
     ggsave('RunningxG5v5.png', plot = xG_plot_5v5, height = 5)
     ggsave('xGlocations.png', plot = xg_locations_plot, height = 4)
