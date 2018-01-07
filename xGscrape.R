@@ -3111,7 +3111,7 @@ library(gridExtra)
 library(stringr)
 
 #stores yesterday's date in a variable
-date <- Sys.Date()-2
+date <- Sys.Date()-1
 
 #daily_games stores each games results in goals and xG to write to text file for
 #twitter bot and daily_pbp will be the dataframe that holds the complete play by
