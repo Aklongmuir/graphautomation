@@ -1130,7 +1130,7 @@ ds.scrape_game <- function(season, game_id, try_tolerance = 3, agents = "Mozilla
         # Removing this
         #home_team_[which(home_team_ == "PHX")] <- "ARI"; away_team_[which(away_team_ == "PHX")] <- "ARI"
 
-        coordinates_df <- ds.get_coordinates(season_, game_id_, source = "espn", date = game_date_, away_team = away_team_, try_tolerance, agents)
+        coordinates_df <- NULL#ds.get_coordinates(season_, game_id_, source = "espn", date = game_date_, away_team = away_team_, try_tolerance, agents)
 
         if(!is.null(coordinates_df)) {
 
@@ -3112,7 +3112,7 @@ library(gridExtra)
 library(stringr)
 
 #stores yesterday's date in a variable
-date <- Sys.Date()-94
+date <- Sys.Date()-1
 
 #daily_games stores each games results in goals and xG to write to text file for
 #twitter bot and daily_pbp will be the dataframe that holds the complete play by
