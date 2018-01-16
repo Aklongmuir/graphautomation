@@ -3939,7 +3939,7 @@ for(game_number in games[[1]]){
 
     home_adj_5v5 <- full_join(home_adj_5v5, home_individual_stats_5v5,
                                    by = c("player")) %>%
-        full_join(home_adj_groupd_player_xg, by = c("player"))
+        full_join(home_adj_groupd_player_xg_5v5, by = c("player"))
     home_adj_5v5 <- replace_na(home_adj_5v5,
                                     list(G = 0, A1 = 0, A2 = 0, ixG = 0))
 
@@ -4050,7 +4050,7 @@ for(game_number in games[[1]]){
 
     away_adj_5v5 <- full_join(away_adj_5v5, away_individual_stats_5v5,
                               by = c("player")) %>%
-        full_join(away_adj_groupd_player_xg, by = c("player"))
+        full_join(away_adj_groupd_player_xg_5v5, by = c("player"))
     away_adj_5v5 <- replace_na(away_adj_5v5,
                                list(G = 0, A1 = 0, A2 = 0, ixG = 0))
 
