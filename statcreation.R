@@ -98,7 +98,7 @@ is_home <- function(dataframe){
 #)
 
 
-games <- c(20001:20682)
+games <- c(20394)
 
 csv_games <-c(20540)
 #Loops through game numbers in the daily_games vector and scrapes the data
@@ -130,7 +130,7 @@ for(game_number in games){
     pbp_df <- read_delim(paste0('~/HockeyStuff/xGGameBreakdowns/2018/', game_number, '/',
                                 game_number), delim = '|')
 
-    
+    print(game_number)
 
 
     ############################################################################
@@ -1422,7 +1422,7 @@ for(game_number in games){
     dir.create(paste0('~/HockeyStuff/xGGameBreakdowns/2018/', as.character(game_number)))
     setwd(paste0('~/HockeyStuff/xGGameBreakdowns/2018/', as.character(game_number)))
     
-    write_delim(pbp_df, toString(game_number), delim = '|')
+
     write_delim(player_all_sits_adj, paste(toString(game_number),
                                            'playerstatsadj'), delim = '|')
     write_delim(player_5v5_adj, paste(toString(game_number),
