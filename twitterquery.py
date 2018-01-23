@@ -2,6 +2,7 @@ import keylesstwitterpost as twitterpost
 import tweepy
 import sys
 import psycopg2
+import pandas as pd
 
 def text_error_check(text):
     '''
@@ -122,6 +123,28 @@ def database_query(query):
     return data
 
 def twitter_text_parser(data_text, status_text, season):
+    '''
+    function to format the data into a readable format for the replying tweet
+    from the bot in this form:
+
+    Season
+    Player Name
+    Stat: Value
+    Stat: Value
+    Stat: Value
+
+    Inputs:
+    data_text - string containg the data of the query
+    status_text - text from the twitter query to function can tell if its
+                  formatting for player stats or player stats
+    season - string representing the season of the data queried
+
+    Outputs:
+
+    twitter_string - string that the api will tweet in response to the original
+                     tweet containing data requested
+    '''
+
     twitter_string = '{}\n'.format(season)
     if 'playerstats' in status_text:
         stats = ['CF%', 'xGF%', 'ixG']
@@ -145,6 +168,136 @@ def twitter_text_parser(data_text, status_text, season):
 
     return twitter_string
 
+def graph_query_parse(query_text):
+
+    '''
+    This function parses the orginal text the user passed to the bot if they
+    are requesting a graph of a stat.
+
+    Inputs:
+    query_text - a list containing each word of the tweet sent to the bot split
+                 into a list.
+
+    Outputs:
+    parsed_query - a list of the elements needed to pass to the sql query creation
+                   function.
+    '''
+
+    parsed_query = []
+    if 'team' in query_text and 'vs.' in query_text:
+        '''
+        appending data in this order:
+        team1, team2, stat to graph, year, database
+        '''
+        parsed_query.append(query_text[1].upper())
+        parsed_query.append(query_text[3].upper())
+        parsed_query.append(query_text[6].lower())
+        parsed_query.append(query_text[7].upper())
+        parsed_query.append(query_text[4].upper())
+    elif 'team' in query_text and 'vs.' not in query_text:
+        '''
+        appending data in this order:
+        team, stat to graph, year, database
+        '''
+        parsed_query.append(query_text[1].upper())
+        parsed_query.append(query_text[4].lower())
+        parsed_query.append(query_text[5].upper())
+        parsed_query.append(query_text[2].upper())
+    elif 'player' in query_text and 'vs.' in query_text:
+        #append first player name
+        parsed_query.append('{}.{}'.format(query_text[1], query_text[2]).upper())
+        #append second player name
+        parsed_query.append('{}.{}'.format(query_text[4], query_text[5]).upper())
+        #append stat
+        parsed_query.append(query_text[8].lower())
+        #append year
+        parsed_query.append(query_text[9])
+        #append database
+        parsed_query.append(query_text[6])
+    elif 'player' in query_text and 'vs.' not in query_text:
+        #append player name
+        parsed_query.append('{}.{}'.format(query_text[1], query_text[2]).upper())
+        #append stat
+        parsed_query.append(query_text[5].lower())
+        #append year
+        parsed_query.append(query_text[6])
+        #append database
+        parsed_query.append(query_text[3])
+
+    '''
+    This part checks for the 5v5 and adjusted flags and then adds them onto
+    the database so the right database table will be queried later
+    '''
+    if '-adj' in query_text and '-5v5' in query_text:
+        parsed_query[-1] = '{}{}{}{}'.format(query_text[-1], 'stats', 'adj', '5v5')
+    elif '-adj' in query_text and '-5v5' not in query_text:
+        parsed_query[-1] = '{}{}{}'.format(query_text[-1], 'stats', 'adj')
+    elif '-adj' not in query_text and '-5v5' in query_text:
+        parsed_query[-1] = '{}{}{}'.format(query_text[-1], 'stats', '5v5')
+
+    print(parsed_query)
+    return parsed_query
+
+
+def graph_query_creation(query_list):
+    '''
+    Function to turn the parsed twitter query into an sql query for tweets
+    that are requesting graphs
+
+    Inputs:
+    query_list - list containing keywords from parsed twitter query
+
+    Outputs:
+    sql_query - string representing the sql query needed to select the
+                appropriate data for the requested graph
+    '''
+
+    if len(query_list) == 4:
+        if query_list[-1][0:6] == 'player':
+            sql_query = 'SELECT player, game_date, {} from {} where' \
+                        'player = \'{}\''.format(query_list[1], query_list[4],\
+                        query_list[0])
+        else:
+            sql_query = 'SELECT team, game_date, {} from {} where' \
+                        'team = \'{}\''.format(query_list[1], query_list[4],\
+                        query_list[0])
+    elif len(query_list) == 5:
+        if query_list[-1][0:6] == 'player':
+            sql_query = 'SELECT player, game_date, {} from {} where' \
+                        'player = \'{}\' or player = \'{}\''.format\
+                        (query_list[2], query_list[-1], query_list[0], \
+                        query_list[1])
+        else:
+            sql_query = 'SELECT player, game_date, {} from {} where' \
+                        'team = \'{}\' or team = \'{}\''.format\
+                        (query_list[2], query_list[-1], query_list[0], \
+                        query_list[1])
+
+    return sql_query
+
+def graph_database_query(query_string):
+    '''
+    function to query the database and return the results as a pandas dataframe
+
+    Inputs:
+    query_string - string consisting of the sql query to execute
+
+    Outputs:
+    query_df - SQL query results stored in a pandas dataframe
+    '''
+    conn = psycopg2.connect("host=localhost dbname=nhl user=matt")
+    query_df = pd.read_sql_query(query_string, conn)
+    query_df = query_df.sort('game_date')
+
+    if len(query_df.iloc[:, 0].unique()) == 2:
+        query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
+                [query_df.columns[2]]\
+                .rolling(5).mean().reset_index(0, drop = True)
+    else:
+        query_df['moving_avg'] = query_df.iloc[:, 2].rolling(5).mean()
+
+    return query_df
+
 class BotStreamer(tweepy.StreamListener):
 # Called when a new status arrives which is passed down from the on_data method of the StreamListener
     def __init__(self, api):
@@ -162,12 +315,20 @@ class BotStreamer(tweepy.StreamListener):
             return
 
         try:
-            query = query_parse(status)
-            query_text = query_creation(query)
-            returned_data = database_query(query_text)
-            tweet_text = twitter_text_parser(returned_data, status, query[-1])
-            self.api.update_status(status =  '@{}\n{}'.format(username,tweet_text),\
-                   in_reply_to_status_id = status_id)
+            if 'graph' in status:
+                query = graph_query_parse(status)
+                graph_query_text = graph_query_creation(query)
+                graph_df = graph_database_query(graph_query_text)
+
+
+
+            else:
+                query = query_parse(status)
+                query_text = query_creation(query)
+                returned_data = database_query(query_text)
+                tweet_text = twitter_text_parser(returned_data, status, query[-1])
+                self.api.update_status(status =  '@{}\n{}'.format(username,tweet_text),\
+                       in_reply_to_status_id = status_id)
 
         except Exception as ex:
             print(ex)
