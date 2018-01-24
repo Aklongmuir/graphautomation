@@ -3,6 +3,9 @@ import tweepy
 import sys
 import psycopg2
 import pandas as pd
+import matplotlib.pyplot as plt
+import random
+import os
 
 def text_error_check(text):
     '''
@@ -98,6 +101,7 @@ def query_parse(text_list):
             new_query[2] = '{}{}'.format(new_query[2], 'adj')
         elif '-adj' not in text_list and '-5v5' in text_list:
             new_query[2] = '{}{}'.format(new_query[2], '5v5')
+
     else:
         if '-adj' in text_list and '-5v5' in text_list:
             new_query[1] = '{}{}{}'.format(new_query[1], 'adj', '5v5')
@@ -192,8 +196,8 @@ def graph_query_parse(query_text):
         parsed_query.append(query_text[1].upper())
         parsed_query.append(query_text[3].upper())
         parsed_query.append(query_text[6].lower())
-        parsed_query.append(query_text[7].upper())
-        parsed_query.append(query_text[4].upper())
+        parsed_query.append(query_text[7])
+        parsed_query.append(query_text[4])
     elif 'team' in query_text and 'vs.' not in query_text:
         '''
         appending data in this order:
@@ -201,8 +205,8 @@ def graph_query_parse(query_text):
         '''
         parsed_query.append(query_text[1].upper())
         parsed_query.append(query_text[4].lower())
-        parsed_query.append(query_text[5].upper())
-        parsed_query.append(query_text[2].upper())
+        parsed_query.append(query_text[5])
+        parsed_query.append(query_text[2])
     elif 'player' in query_text and 'vs.' in query_text:
         #append first player name
         parsed_query.append('{}.{}'.format(query_text[1], query_text[2]).upper())
@@ -229,11 +233,13 @@ def graph_query_parse(query_text):
     the database so the right database table will be queried later
     '''
     if '-adj' in query_text and '-5v5' in query_text:
-        parsed_query[-1] = '{}{}{}{}'.format(query_text[-1], 'stats', 'adj', '5v5')
+        parsed_query[-1] = '{}{}{}{}'.format(parsed_query[-1], 'stats', 'adj', '5v5')
     elif '-adj' in query_text and '-5v5' not in query_text:
-        parsed_query[-1] = '{}{}{}'.format(query_text[-1], 'stats', 'adj')
+        parsed_query[-1] = '{}{}{}'.format(parsed_query[-1], 'stats', 'adj')
     elif '-adj' not in query_text and '-5v5' in query_text:
-        parsed_query[-1] = '{}{}{}'.format(query_text[-1], 'stats', '5v5')
+        parsed_query[-1] = '{}{}{}'.format(parsed_query[-1], 'stats', '5v5')
+    else:
+        parsed_query[-1] = '{}{}'.format(parsed_query[-1], 'stats')
 
     print(parsed_query)
     return parsed_query
@@ -254,21 +260,21 @@ def graph_query_creation(query_list):
 
     if len(query_list) == 4:
         if query_list[-1][0:6] == 'player':
-            sql_query = 'SELECT player, game_date, {} from {} where' \
-                        'player = \'{}\''.format(query_list[1], query_list[4],\
+            sql_query = 'SELECT player, game_date, {} from {} where ' \
+                        'player = \'{}\''.format(query_list[1], query_list[3],\
                         query_list[0])
         else:
-            sql_query = 'SELECT team, game_date, {} from {} where' \
-                        'team = \'{}\''.format(query_list[1], query_list[4],\
+            sql_query = 'SELECT team, game_date, {} from {} where ' \
+                        'team = \'{}\''.format(query_list[1], query_list[3],\
                         query_list[0])
     elif len(query_list) == 5:
         if query_list[-1][0:6] == 'player':
-            sql_query = 'SELECT player, game_date, {} from {} where' \
+            sql_query = 'SELECT player, game_date, {} from {} where ' \
                         'player = \'{}\' or player = \'{}\''.format\
                         (query_list[2], query_list[-1], query_list[0], \
                         query_list[1])
         else:
-            sql_query = 'SELECT player, game_date, {} from {} where' \
+            sql_query = 'SELECT team, game_date, {} from {} where ' \
                         'team = \'{}\' or team = \'{}\''.format\
                         (query_list[2], query_list[-1], query_list[0], \
                         query_list[1])
@@ -287,7 +293,8 @@ def graph_database_query(query_string):
     '''
     conn = psycopg2.connect("host=localhost dbname=nhl user=matt")
     query_df = pd.read_sql_query(query_string, conn)
-    query_df = query_df.sort('game_date')
+    query_df = query_df.sort_values('game_date')
+
 
     if len(query_df.iloc[:, 0].unique()) == 2:
         query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
@@ -296,7 +303,28 @@ def graph_database_query(query_string):
     else:
         query_df['moving_avg'] = query_df.iloc[:, 2].rolling(5).mean()
 
+    print(query_df.head())
     return query_df
+
+def graph_creation(dataframe):
+
+    dataframe.head()
+    grouped = dataframe.groupby(dataframe.columns[0])
+    fig, ax = plt.subplots(figsize = (16,6))
+
+    for key, group in grouped:
+        group.plot(x = 'game_date', y = 'moving_avg', label = key, ax = ax)
+
+    plt.title('{} 5 game rolling average by @BarloweAnalytic'.format(dataframe.columns[2]))
+    plt.ylabel(dataframe.columns[2])
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.grid(alpha = .5)
+    file_name = 'plot{}.png'.format(str(random.randint(1,1000)))
+    fig.savefig(file_name)
+
+    return file_name
+
 
 class BotStreamer(tweepy.StreamListener):
 # Called when a new status arrives which is passed down from the on_data method of the StreamListener
@@ -310,8 +338,10 @@ class BotStreamer(tweepy.StreamListener):
         status = status.split(' ')
         print(status)
         if text_error_check(status):
+            '''
             self.api.update_status(status = '@{} Please check your syntax and try again'.format(username), \
                     in_reply_to_status_id = status_id)
+            '''
             return
 
         try:
@@ -319,8 +349,9 @@ class BotStreamer(tweepy.StreamListener):
                 query = graph_query_parse(status)
                 graph_query_text = graph_query_creation(query)
                 graph_df = graph_database_query(graph_query_text)
-
-
+                graph_name = graph_creation(graph_df)
+                self.api.update_with_media(graph_name, status = '@{}'.format(username),\
+                        in_reply_to_status_id = status_id)
 
             else:
                 query = query_parse(status)
@@ -332,10 +363,7 @@ class BotStreamer(tweepy.StreamListener):
 
         except Exception as ex:
             print(ex)
-            self.api.update_status(status = '@{} Please check your syntax and try again'.format(username), \
-                    in_reply_to_status_id = status_id)
             return
-
 
 
 
