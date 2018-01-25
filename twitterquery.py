@@ -355,6 +355,7 @@ def graph_creation(dataframe):
                 and attached to the replying tweet by the bot
     '''
 
+    percent_stats = ['cf_percent', 'ff_percent', 'xgf_percent']
     dataframe.head()
     grouped = dataframe.groupby(dataframe.columns[0])
     fig, ax = plt.subplots(figsize = (16,6))
@@ -366,6 +367,8 @@ def graph_creation(dataframe):
     plt.ylabel(dataframe.columns[2])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
+    if dataframe.columns[2] in percent_stats:
+        plt.axhline(y = 50, color = 'k', linestyle = '--')
     ax.grid(alpha = .5)
     file_name = 'plot{}.png'.format(str(random.randint(1,1000)))
     fig.savefig(file_name)
@@ -403,6 +406,7 @@ class BotStreamer(tweepy.StreamListener):
                 graph_name = graph_creation(graph_df)
                 self.api.update_with_media(graph_name, status = '@{}'.format(username),\
                         in_reply_to_status_id = status_id)
+                os.remove(graph_name)
 
             else:
                 query = query_parse(status)
