@@ -31,6 +31,17 @@ def text_error_check(text):
         return True
 
 def query_creation(query_list):
+    '''
+    This function creates an sql query to pass to the SQL db to collect the stats
+    for teams and players.  This will be passed to the database_query() function.
+
+    Inputs:
+    query_list - list parsed from the original tweet from the user online is
+                 the output of the query_parse() function.
+
+    Outputs:
+    sql_query - a string formatted to be a proper SQL query.
+    '''
     if len(query_list) == 3:
         if query_list[1][0:6] == 'player':
             sql_query = 'SELECT player, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
@@ -40,7 +51,7 @@ def query_creation(query_list):
                         query_list[0])
         else:
             sql_query = 'SELECT team, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
-                        ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) as xGF_Percent'\
+                        ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent'\
                         ' FROM {} WHERE team = \'{}\' group by team;'.format(query_list[1],
                         query_list[0])
     elif len(query_list) == 4:
@@ -60,6 +71,14 @@ def query_creation(query_list):
 
 
 def query_parse(text_list):
+    '''
+    Function to parse the original tweet from the online user and convert it
+    to a list that will be turned into an sql query string.
+
+    Inputs - a list of the orignal tweet components
+
+    Outputs - a list formatted to be passed to the query_creation() function
+    '''
     new_query = []
     if 'playerstats' in text_list and 'vs.' not in text_list:
         #append player name
@@ -113,6 +132,17 @@ def query_parse(text_list):
     return new_query
 
 def database_query(query):
+    '''
+    This function queries the database for statistical queries only and then
+    formats the data into a list for the twiiter API to post to answer
+    the query of the online user.
+
+    Inputs - a list that is the output of the query_parse() function
+
+    Outputs - a list that is stripped of the excess characters that are the
+              result of querying the sql database this will be passed to the
+              twitter_text_parser() function.
+    '''
 
     conn = psycopg2.connect("host=localhost dbname=nhl user=matt")
     cur = conn.cursor()
@@ -140,7 +170,7 @@ def twitter_text_parser(data_text, status_text, season):
     Inputs:
     data_text - string containg the data of the query
     status_text - text from the twitter query to function can tell if its
-                  formatting for player stats or player stats
+                  formatting for player stats or team stats
     season - string representing the season of the data queried
 
     Outputs:
@@ -286,10 +316,12 @@ def graph_database_query(query_string):
     function to query the database and return the results as a pandas dataframe
 
     Inputs:
-    query_string - string consisting of the sql query to execute
+    query_string - string consisting of the sql query to execute this is the
+                   output of the graph_query_creation() function.
 
     Outputs:
-    query_df - SQL query results stored in a pandas dataframe
+    query_df - SQL query results stored in a pandas dataframe this will be the
+               input of the graph_creation() function
     '''
     conn = psycopg2.connect("host=localhost dbname=nhl user=matt")
     query_df = pd.read_sql_query(query_string, conn)
@@ -307,6 +339,21 @@ def graph_database_query(query_string):
     return query_df
 
 def graph_creation(dataframe):
+    '''
+    This function takes a dataframe and plots it based on the groups in either
+    the player or team column depending on the orginal query from the user
+
+    Inputs:
+    dataframe - dataframe created by the graph_database_query() function will
+                have columns consisting of player/team, game_date, stat queried,
+                and the 5 game moving average of that statistic.
+
+    Outputs:
+    file_name - this is a .png file of the graph created by plotting the moving
+                average of the user requested statistic against the dates of the
+                games played. This image file will then be uploaded to the API
+                and attached to the replying tweet by the bot
+    '''
 
     dataframe.head()
     grouped = dataframe.groupby(dataframe.columns[0])
@@ -327,21 +374,25 @@ def graph_creation(dataframe):
 
 
 class BotStreamer(tweepy.StreamListener):
+    '''
+    This class inherits from tweepy's StreamListener class with the on_status()
+    function changed to create the output neccesary to answer the users data
+    query.  I also pass it the bots twitter api so it can then respond to those
+    queries with the appropriate data.
+    '''
 # Called when a new status arrives which is passed down from the on_data method of the StreamListener
     def __init__(self, api):
         self.api = api
 
     def on_status(self, status):
+#gets username of the person who tweeted bot
         username = status.user.screen_name
+#stores status.id of the query tweet to the bot knows what tweet to reply to
         status_id = status.id
+#stores text of tweet and splits it so that the bot can further process it
         status = status.text
         status = status.split(' ')
-        print(status)
         if text_error_check(status):
-            '''
-            self.api.update_status(status = '@{} Please check your syntax and try again'.format(username), \
-                    in_reply_to_status_id = status_id)
-            '''
             return
 
         try:
@@ -382,6 +433,9 @@ def main():
     Outputs:
     None
     '''
+#this function gets the twitter api keys from the text file they are stored in
+#the contents of the function can be found in the keylesstwitter.py file on
+#github
     twitter_keys = twitterpost.get_twitter_keys(sys.argv[1])
     auth = tweepy.OAuthHandler(twitter_keys['Consumer Key'],
             twitter_keys['Consumer Secret Key'])
@@ -391,7 +445,8 @@ def main():
 
 
     myStreamListener = BotStreamer(api)
-# Construct the Stream instance
+# Construct the Stream instance using the BotStreamer class as the listener and
+#set it to track whenever people tweet at it
     stream = tweepy.Stream(auth = api.auth, listener = myStreamListener)
     stream.filter(track=['@barloweanalytic'])
 
