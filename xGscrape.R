@@ -3789,6 +3789,8 @@ for(game_number in games[[1]]){
     away_all_sits_adj$game_date <- first(pbp_df$game_date)
 
     player_all_sits_adj <- rbind(away_all_sits_adj, home_all_sits_adj)
+    player_all_sits_adj$season <- first(pbp_df$season)
+    player_all_sits_adj$session <- first(pbp_df$session)
 
     #adding the adjusted player stats to the dataframe that will be written to
     #text file for sql insertion
@@ -3851,6 +3853,8 @@ for(game_number in games[[1]]){
     #add date and game id to the stats and denote which was home team
     team_adj_stats_all_sits$is_home <- ifelse(team_adj_stats_all_sits$Team ==
                                                   first(pbp_df$home_team), 1, 0)
+    team_adj_stats_all_sits$season <- first(pbp_df$season)
+    team_adj_stats_all_sits$session <- first(pbp_df$session)
 
     #add to the daily team dataframe to write to text file for sql insertion
     daily_team_adjusted_stats <- rbind(team_adj_stats_all_sits,
@@ -4079,6 +4083,8 @@ for(game_number in games[[1]]){
     away_adj_5v5$game_date <- first(pbp_df$game_date)
 
     player_5v5_adj <- rbind(away_adj_5v5, home_adj_5v5)
+    player_5v5_adj$season <- first(pbp_df$season)
+    player_5v5_adj$session <- first(pbp_df$session)
 
     #bind player 5v5 to the daily 5v5 adjusted dataframe
     daily_adj_player_stats_5v5 <- rbind(away_adj_5v5, daily_adj_player_stats_5v5)
@@ -4132,6 +4138,8 @@ for(game_number in games[[1]]){
     #add date and game id to the stats and denote which was home team
     team_adj_stats_5v5$is_home <- ifelse(team_adj_stats_all_sits$Team ==
                                                   first(pbp_df$home_team), 1, 0)
+    team_adj_stats_5v5$season <- first(pbp_df$season)
+    team_adj_stats_5v5$session <- first(pbp_df$session)
 
     #add to the daily team dataframe to write to text file for sql insertion
     daily_adj_team_stats_5v5 <- rbind(team_adj_stats_5v5,
@@ -4358,6 +4366,8 @@ for(game_number in games[[1]]){
     away_all_sits$game_date <- first(pbp_df$game_date)
 
     player_stats <- rbind(away_all_sits, home_all_sits)
+    player_stats$season <- first(pbp_df$season)
+    player_stats$session <- first(pbp_df$session)
 
     #bind player 5v5 to the daily 5v5 adjusted dataframe
     daily_player_stats <- rbind(away_all_sits, daily_player_stats)
@@ -4410,6 +4420,8 @@ for(game_number in games[[1]]){
     #add date and game id to the stats and denote which was home team
     team_stats_all_sits$is_home <- ifelse(team_stats_all_sits$Team ==
                                                   first(pbp_df$home_team), 1, 0)
+    team_stats_all_sits$season <- first(pbp_df$season)
+    team_stats_all_sits$session <- first(pbp_df$session)
 
     #add to the daily team dataframe to write to text file for sql insertion
     daily_team_stats <- rbind(team_stats_all_sits,
@@ -4635,6 +4647,8 @@ for(game_number in games[[1]]){
     away_5v5$game_date <- first(pbp_df$game_date)
 
     player_stats_5v5 <- rbind(away_5v5, home_5v5)
+    player_stats_5v5$season <- first(pbp_df$season)
+    player_stats_5v5$session <- first(pbp_df$session)
 
     #bind player 5v5 to the daily 5v5 adjusted dataframe
     daily_player_stats_5v5 <- rbind(away_5v5, daily_player_stats_5v5)
@@ -4688,6 +4702,8 @@ for(game_number in games[[1]]){
     #add date and game id to the stats and denote which was home team
     team_stats_5v5$is_home <- ifelse(team_stats_5v5$Team ==
                                              first(pbp_df$home_team), 1, 0)
+    team_stats_5v5$season <- first(pbp_df$season)
+    team_stats_5v5$session <- first(pbp_df$session)
 
     #add to the daily team dataframe to write to text file for sql insertion
     daily_team_stats_5v5 <- rbind(team_stats_5v5,

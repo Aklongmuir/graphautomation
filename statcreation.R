@@ -98,7 +98,7 @@ is_home <- function(dataframe){
 #)
 
 
-games <- c(20001:20743)
+games <- c(20617:20743)
 
 
 #Loops through game numbers in the daily_games vector and scrapes the data
