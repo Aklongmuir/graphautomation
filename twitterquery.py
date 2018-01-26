@@ -153,7 +153,6 @@ def database_query(query):
         data.append('{}'.format(str(row).replace('(', '').replace(',', '')\
                 .replace(')', '').replace("'", '').replace('Decimal', '')))
     conn.close()
-
     return data
 
 def twitter_text_parser(data_text, status_text, season):
@@ -179,11 +178,21 @@ def twitter_text_parser(data_text, status_text, season):
                      tweet containing data requested
     '''
 
+    def three_name_adjuster(data_list):
+        new_list = []
+        if 'EK' in data_list or 'VAN' in data_list:
+            data_list = data_list.split(' ')
+            new_list.append('{} {}'.format(data_list[0], data_list[1]))
+            new_list.extend(data_list[2:])
+            return new_list
+        else:
+            return data_list.split(' ')
+
     twitter_string = '{}\n'.format(season)
     if 'playerstats' in status_text:
         stats = ['CF%', 'xGF%', 'ixG']
         for data in data_text:
-            data_list = data.split(' ')
+            data_list = three_name_adjuster(data)
             for stat, x in zip(stats, range(len(data_list[0:3]))):
                 data_list[x+1] = '{}: {}'.format(stat, data_list[x+1][:-2])
 
@@ -375,6 +384,16 @@ def graph_creation(dataframe):
 
     return file_name
 
+def three_name_parser(status_list):
+    new_list = []
+    status_list = list(map(str.lower, status_list))
+    if 'ek' in status_list or 'van' in status_list:
+        new_list.extend(status_list[:2])
+        new_list.append('{} {}'.format(status_list[2], status_list[3]))
+        new_list.extend(status_list[4:])
+        return new_list
+    else:
+        return status_list
 
 class BotStreamer(tweepy.StreamListener):
     '''
@@ -400,6 +419,7 @@ class BotStreamer(tweepy.StreamListener):
 
         try:
             if 'graph' in status:
+                status = three_name_parser(status)
                 query = graph_query_parse(status)
                 graph_query_text = graph_query_creation(query)
                 graph_df = graph_database_query(graph_query_text)
@@ -409,6 +429,7 @@ class BotStreamer(tweepy.StreamListener):
                 os.remove(graph_name)
 
             else:
+                status = three_name_parser(status)
                 query = query_parse(status)
                 query_text = query_creation(query)
                 returned_data = database_query(query_text)

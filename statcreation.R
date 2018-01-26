@@ -98,7 +98,7 @@ is_home <- function(dataframe){
 #)
 
 
-games <- c(20617:20743)
+games <- c(20427)
 
 
 #Loops through game numbers in the daily_games vector and scrapes the data
@@ -127,7 +127,7 @@ for(game_number in games){
 
 
 #pulls out the actual pbp data from the list
-    pbp_df <- read_delim(paste0('~/HockeyStuff/xGGameBreakdowns/2018_backup/', game_number, '/',
+    pbp_df <- read_delim(paste0('~/HockeyStuff/xGGameBreakdowns/2018/', game_number, '/',
                                 game_number), delim = '|')
 
     print(game_number)
@@ -1436,7 +1436,7 @@ for(game_number in games){
 
     #saves all the plots to png files and folder labeled with game number
     
-    setwd(paste0('~/HockeyStuff/xGGameBreakdowns/2018_backup/', as.character(game_number)))
+    setwd(paste0('~/HockeyStuff/xGGameBreakdowns/2018/', as.character(game_number)))
     
 
     write_delim(player_all_sits_adj, paste(toString(game_number),
