@@ -47,25 +47,25 @@ def query_creation(query_list):
             sql_query = 'SELECT player, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
                         ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent, '\
                         'ROUND(SUM(ixg)::NUMERIC, 4)'\
-                        ' FROM {} WHERE player = \'{}\' group by player;'.format(query_list[1],
-                        query_list[0])
+                        ' FROM {} WHERE player = \'{}\' AND season = \'{}\' group by player;'.format(query_list[1],
+                        query_list[0], format_season(query_list[-1]))
         else:
             sql_query = 'SELECT team, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
                         ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent'\
-                        ' FROM {} WHERE team = \'{}\' group by team;'.format(query_list[1],
-                        query_list[0])
+                        ' FROM {} WHERE team = \'{}\' AND season = \'{}\' group by team;'.format(query_list[1],
+                        query_list[0], format_season(query_list[-1]))
     elif len(query_list) == 4:
         if query_list[2][0:6] == 'player':
             sql_query = 'SELECT player, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
                         ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent,'\
                         'ROUND(SUM(ixg)::NUMERIC, 4)'\
-                        ' FROM {} WHERE player = \'{}\' or player = \'{}\' group by player;'.format(query_list[2],
-                        query_list[0], query_list[1])
+                        ' FROM {} WHERE player = \'{}\' or player = \'{}\' AND season = \'{}\' group by player;'.format(query_list[2],
+                        query_list[0], query_list[1], format_season(query_list[-1]))
         else:
             sql_query = 'SELECT team, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
                         ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent'\
-                        ' FROM {} WHERE team = \'{}\' or team = \'{}\' group by team;'.format(query_list[2],
-                        query_list[0], query_list[1])
+                        ' FROM {} WHERE team = \'{}\' or team = \'{}\' AND season = \'{}\' group by team;'.format(query_list[2],
+                        query_list[0], query_list[1], format_season(query_list[-1]))
 
     return sql_query
 
@@ -283,6 +283,10 @@ def graph_query_parse(query_text):
     print(parsed_query)
     return parsed_query
 
+def format_season(number):
+    number_less = int(number) - 1
+    number = str(number_less) + str(number)
+    return number
 
 def graph_query_creation(query_list):
     '''
@@ -298,25 +302,29 @@ def graph_query_creation(query_list):
     '''
 
     if len(query_list) == 4:
-        if query_list[-1][0:6] == 'player':
+        if query_list[-1][:6] == 'player':
             sql_query = 'SELECT player, game_date, {} from {} where ' \
-                        'player = \'{}\''.format(query_list[1], query_list[3],\
-                        query_list[0])
+                        'player = \'{}\' AND season = \'{}\';'\
+                        .format(query_list[1], query_list[3],\
+                        query_list[0], format_season(query_list[-2]))
         else:
             sql_query = 'SELECT team, game_date, {} from {} where ' \
-                        'team = \'{}\''.format(query_list[1], query_list[3],\
-                        query_list[0])
+                        'team = \'{}\' AND season = \'{}\';'\
+                        .format(query_list[1], query_list[3],\
+                        query_list[0], format_season(query_list[-2]))
     elif len(query_list) == 5:
-        if query_list[-1][0:6] == 'player':
+        if query_list[-1][:6] == 'player':
             sql_query = 'SELECT player, game_date, {} from {} where ' \
-                        'player = \'{}\' or player = \'{}\''.format\
+                        'player = \'{}\' or player = \'{}\'AND season = \'{}\';'\
+                        .format\
                         (query_list[2], query_list[-1], query_list[0], \
-                        query_list[1])
+                        query_list[1], format_season(query_list[-2]))
         else:
             sql_query = 'SELECT team, game_date, {} from {} where ' \
-                        'team = \'{}\' or team = \'{}\''.format\
+                        'team = \'{}\' or team = \'{}\' AND season = \'{}\';'\
+                        .format\
                         (query_list[2], query_list[-1], query_list[0], \
-                        query_list[1])
+                        query_list[1], format_season(query_list[-2]))
 
     return sql_query
 
@@ -347,7 +355,7 @@ def graph_database_query(query_string):
     print(query_df.head())
     return query_df
 
-def graph_creation(dataframe):
+def graph_creation(dataframe, graph_query):
     '''
     This function takes a dataframe and plots it based on the groups in either
     the player or team column depending on the orginal query from the user
@@ -372,7 +380,8 @@ def graph_creation(dataframe):
     for key, group in grouped:
         group.plot(x = 'game_date', y = 'moving_avg', label = key, ax = ax)
 
-    plt.title('{} 5 game rolling average by @BarloweAnalytic'.format(dataframe.columns[2]))
+    plt.title('{} {} {} 5 game rolling average by @BarloweAnalytic'\
+            .format(graph_query[0], graph_query[2], dataframe.columns[2]))
     plt.ylabel(dataframe.columns[2])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -417,13 +426,25 @@ class BotStreamer(tweepy.StreamListener):
         if text_error_check(status):
             return
 
+        if username == 'CJTDevil':
+            try:
+                self.api.update_status(status =  '@{}\n You have insulted'\
+                        'my mighty creator the God Emperor before you can use'\
+                        'the bot again you must repent for choosing me over'\
+                        'him and seek suplication for your sins.'.format(\
+                        username,tweet_text),\
+                        in_reply_to_status_id = status_id)
+            except:
+                return
+
+
         try:
             if 'graph' in status:
                 status = three_name_parser(status)
                 query = graph_query_parse(status)
                 graph_query_text = graph_query_creation(query)
                 graph_df = graph_database_query(graph_query_text)
-                graph_name = graph_creation(graph_df)
+                graph_name = graph_creation(graph_df, query)
                 self.api.update_with_media(graph_name, status = '@{}'.format(username),\
                         in_reply_to_status_id = status_id)
                 os.remove(graph_name)
