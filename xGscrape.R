@@ -3262,6 +3262,53 @@ for(game_number in games[[1]]){
     #removes shootout info from data frame and creates is_home dummy variable
     pbp_df <- pbp_df[pbp_df$game_period < 5,]
     pbp_df <- is_home(pbp_df)
+    
+    pbp_df$event_player_1 <- ifelse(pbp_df$event_player_1 == 'SEBASTIAN.AHO' &
+                                        pbp_df$event_team == 'NYI', '5EBASTIAN.AHO',
+                                    pbp_df$event_player_1)
+    pbp_df$event_player_2 <- ifelse(pbp_df$event_player_2 == 'SEBASTIAN.AHO' &
+                                        pbp_df$event_team == 'NYI', '5EBASTIAN.AHO',
+                                    pbp_df$event_player_2)
+    pbp_df$event_player_3 <- ifelse(pbp_df$event_player_3 == 'SEBASTIAN.AHO' &
+                                        pbp_df$event_team == 'NYI', '5EBASTIAN.AHO',
+                                    pbp_df$event_player_3)
+    pbp_df$away_on_1 <- ifelse(pbp_df$away_on_1 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_1)
+    pbp_df$away_on_2 <- ifelse(pbp_df$away_on_2 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_2)
+    pbp_df$away_on_3 <- ifelse(pbp_df$away_on_3 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_3)
+    pbp_df$away_on_4 <- ifelse(pbp_df$away_on_4 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_4)
+    pbp_df$away_on_5 <- ifelse(pbp_df$away_on_5 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_5)
+    pbp_df$away_on_6 <- ifelse(pbp_df$away_on_6 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_6)
+    pbp_df$home_on_1 <- ifelse(pbp_df$home_on_1 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_1)
+    pbp_df$home_on_2 <- ifelse(pbp_df$home_on_2 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_2)
+    pbp_df$home_on_3 <- ifelse(pbp_df$home_on_3 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_3)
+    pbp_df$home_on_4 <- ifelse(pbp_df$home_on_4 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_4)
+    pbp_df$home_on_5 <- ifelse(pbp_df$home_on_5 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_5)
+    pbp_df$home_on_6 <- ifelse(pbp_df$home_on_6 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_6)
+    
 
     ############################################################################
     ##Creating the model features including distance, angle, time diff between##

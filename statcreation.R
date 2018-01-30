@@ -34,49 +34,7 @@ daily_player_stats_5v5 <- NULL
 daily_team_stats_5v5 <- NULL
 unscraped_games <-c()
 
-#assigns colors to each team for graphing purposes
-team_colors <- c('black', 'darkred', 'gold', 'royalblue4', 'red3', 'firebrick1',
-                 'black', 'navy', 'maroon', 'red', 'darkgreen', 'navyblue',
-                 'orange', 'mediumblue', 'slategrey', 'limegreen', 'darkgreen',
-                 'darkorange1', 'yellow2', 'mediumblue', 'steelblue4', 'red2',
-                 'lightseagreen', 'darkorange1', 'dodgerblue4', 'gold', 'gold',
-                 'dodgerblue3', 'dodgerblue3', 'navyblue', 'red1')
-names(team_colors) <- c('ANA', 'ARI','BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'CBJ',
-                        'COL', 'DET', 'DAL', 'FLA', 'EDM', 'MTL', 'L.A', 'N.J',
-                        'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
-                        'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
 
-team_hashtags <- c('#LetsGoDucks', '#Yotes', '#NHLBruins', '#Sabres', '#CofRed',
-                   '#Redvolution', '#Blackhawks', '#CBJ', '#GoAvsGo', '#LGRW',
-                   '#GoStars', '#FlaPanthers', '#LetsGoOilers', '#GoHabsGo',
-                   '#GoKingsGo', '#NJDevils', '#mnwild', '#Isles', '#Preds',
-                   '#NYR', '#AllTogetherNowSTL', '#Sens', '#SJSharks',
-                   '#LetsGoFlyers', '#Canucks', '#LetsGoPens', '#VegasBorn',
-                   '#GoBolts', '#TMLtalk', '#GoJetsGo', '#ALLCAPS')
-
-names(team_hashtags) <- c('ANA', 'ARI','BOS', 'BUF', 'CGY', 'CAR', 'CHI', 'CBJ',
-                          'COL', 'DET', 'DAL', 'FLA', 'EDM', 'MTL', 'L.A', 'N.J',
-                          'MIN', 'NYI', 'NSH', 'NYR', 'STL', 'OTT', 'S.J', 'PHI',
-                          'VAN', 'PIT', 'VGK', 'T.B', 'TOR', 'WPG', 'WSH')
-
-get_games <- function(yesterday){
-    #This fuction returns a list of game ids and the nhl season from the day
-    #before to pass to the scraper in the loop below
-
-    games <- c()
-    season <-c()
-
-    #scrapes all the games from the day before and stores in a list
-    list_of_games <- ds.get_schedule(yesterday,yesterday)
-
-    #retrieves season from scheduled games
-    season <- list_of_games$dates[[1]]$games[[1]]$season
-    #pulls out each game number from the scheduled games and stores it in a vector
-    for (i in 1:length(list_of_games$dates[[1]]$games)) {
-        games <- append(games, list_of_games$dates[[1]]$games[[i]]$gamePk)}
-    games <- substr(games, 6, 10)
-    return(list(games, season))
-}
 
 #function to create dummy variables to determine if
 #event was committed by the home team
@@ -98,7 +56,7 @@ is_home <- function(dataframe){
 #)
 
 
-games <- c(20427)
+games <- c(20528:20760)
 
 
 #Loops through game numbers in the daily_games vector and scrapes the data
@@ -131,6 +89,51 @@ for(game_number in games){
                                 game_number), delim = '|')
 
     print(game_number)
+    pbp_df$event_player_1 <- ifelse(pbp_df$event_player_1 == 'SEBASTIAN.AHO' &
+                                        pbp_df$event_team == 'NYI', '5EBASTIAN.AHO',
+                                    pbp_df$event_player_1)
+    pbp_df$event_player_2 <- ifelse(pbp_df$event_player_2 == 'SEBASTIAN.AHO' &
+                                        pbp_df$event_team == 'NYI', '5EBASTIAN.AHO',
+                                    pbp_df$event_player_2)
+    pbp_df$event_player_3 <- ifelse(pbp_df$event_player_3 == 'SEBASTIAN.AHO' &
+                                        pbp_df$event_team == 'NYI', '5EBASTIAN.AHO',
+                                    pbp_df$event_player_3)
+    pbp_df$away_on_1 <- ifelse(pbp_df$away_on_1 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_1)
+    pbp_df$away_on_2 <- ifelse(pbp_df$away_on_2 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_2)
+    pbp_df$away_on_3 <- ifelse(pbp_df$away_on_3 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_3)
+    pbp_df$away_on_4 <- ifelse(pbp_df$away_on_4 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_4)
+    pbp_df$away_on_5 <- ifelse(pbp_df$away_on_5 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_5)
+    pbp_df$away_on_6 <- ifelse(pbp_df$away_on_6 == 'SEBASTIAN.AHO' &
+                                   pbp_df$away_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$away_on_6)
+    pbp_df$home_on_1 <- ifelse(pbp_df$home_on_1 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_1)
+    pbp_df$home_on_2 <- ifelse(pbp_df$home_on_2 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_2)
+    pbp_df$home_on_3 <- ifelse(pbp_df$home_on_3 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_3)
+    pbp_df$home_on_4 <- ifelse(pbp_df$home_on_4 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_4)
+    pbp_df$home_on_5 <- ifelse(pbp_df$home_on_5 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_5)
+    pbp_df$home_on_6 <- ifelse(pbp_df$home_on_6 == 'SEBASTIAN.AHO' &
+                                   pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
+                               pbp_df$home_on_6)
 
 
     ############################################################################
