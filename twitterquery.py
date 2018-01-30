@@ -59,12 +59,12 @@ def query_creation(query_list):
             sql_query = 'SELECT player, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
                         ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent,'\
                         'ROUND(SUM(ixg)::NUMERIC, 4)'\
-                        ' FROM {} WHERE player = \'{}\' or player = \'{}\' AND season = \'{}\' group by player;'.format(query_list[2],
+                        ' FROM {} WHERE (player = \'{}\' or player = \'{}\') AND (season = \'{}\') group by player;'.format(query_list[2],
                         query_list[0], query_list[1], format_season(query_list[-1]))
         else:
             sql_query = 'SELECT team, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
                         ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent'\
-                        ' FROM {} WHERE team = \'{}\' or team = \'{}\' AND season = \'{}\' group by team;'.format(query_list[2],
+                        ' FROM {} WHERE (team = \'{}\' or team = \'{}\') AND (season = \'{}\') group by team;'.format(query_list[2],
                         query_list[0], query_list[1], format_season(query_list[-1]))
 
     return sql_query
@@ -315,13 +315,13 @@ def graph_query_creation(query_list):
     elif len(query_list) == 5:
         if query_list[-1][:6] == 'player':
             sql_query = 'SELECT player, game_date, {} from {} where ' \
-                        'player = \'{}\' or player = \'{}\'AND season = \'{}\';'\
+                        '(player = \'{}\' or player = \'{}\') AND (season = \'{}\');'\
                         .format\
                         (query_list[2], query_list[-1], query_list[0], \
                         query_list[1], format_season(query_list[-2]))
         else:
             sql_query = 'SELECT team, game_date, {} from {} where ' \
-                        'team = \'{}\' or team = \'{}\' AND season = \'{}\';'\
+                        '(team = \'{}\' or team = \'{}\') AND (season = \'{}\');'\
                         .format\
                         (query_list[2], query_list[-1], query_list[0], \
                         query_list[1], format_season(query_list[-2]))
@@ -380,8 +380,13 @@ def graph_creation(dataframe, graph_query):
     for key, group in grouped:
         group.plot(x = 'game_date', y = 'moving_avg', label = key, ax = ax)
 
-    plt.title('{} {} {} 5 game rolling average by @BarloweAnalytic'\
-            .format(graph_query[0], graph_query[2], dataframe.columns[2]))
+    if len(graph_query) == 5:
+        plt.title('{} & {} {} {} 5 game rolling average by @BarloweAnalytic'\
+                .format(graph_query[0], graph_query[1], graph_query[3], dataframe.columns[2]))
+    else:
+        plt.title('{} {} {} 5 game rolling average by @BarloweAnalytic'\
+                .format(graph_query[0], graph_query[2], dataframe.columns[2]))
+
     plt.ylabel(dataframe.columns[2])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)

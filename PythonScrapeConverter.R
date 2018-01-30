@@ -1,5 +1,6 @@
 library(readr)
 library(dplyr)
+library(stringr)
 
 file_name <- '~/HockeyStuff/xGGameBreakdowns/2018/20394/20394.csv'
 
@@ -60,8 +61,8 @@ python_pbp_df$event_detail <- ifelse(python_pbp_df$event_detail == 'DEFLECTED', 
 python_pbp_df$event_detail <- ifelse(python_pbp_df$event_detail == 'TIP-IN', 'Tip-In', 
                                      python_pbp_df$event_detail)
 
-python_pbp_df <- python_pbp_df %>% select(season, game_id, game_date, session, 
-                                          event_index, game_period, game_seconds,
+python_pbp_df <- python_pbp_df %>% select(event_index, season, game_id, game_date, session, 
+                                          game_period, game_seconds,
                                           event_type, event_description, event_detail,
                                           event_team, event_player_1, event_player_2,
                                           event_player_3, event_length, coords_x,
@@ -73,6 +74,32 @@ python_pbp_df <- python_pbp_df %>% select(season, game_id, game_date, session,
                                           away_skaters, home_score, away_score, game_score_state,
                                           game_strength_state, highlight_code)
 
+python_pbp_df$event_player_1 <- str_replace_all(python_pbp_df$event_player_1, ' ', '.')
+python_pbp_df$event_player_2<- str_replace_all(python_pbp_df$event_player_2, ' ', '.')
+python_pbp_df$event_player_3<- str_replace_all(python_pbp_df$event_player_3, ' ', '.')
+python_pbp_df$away_on_1 <- str_replace_all(python_pbp_df$away_on_1, ' ', '.')
+python_pbp_df$away_on_2 <- str_replace_all(python_pbp_df$away_on_2, ' ', '.')
+python_pbp_df$away_on_3 <- str_replace_all(python_pbp_df$away_on_3, ' ', '.')
+python_pbp_df$away_on_4 <- str_replace_all(python_pbp_df$away_on_4, ' ', '.')
+python_pbp_df$away_on_5 <- str_replace_all(python_pbp_df$away_on_5, ' ', '.')
+python_pbp_df$away_on_6 <- str_replace_all(python_pbp_df$away_on_6, ' ', '.')
+python_pbp_df$home_on_1 <- str_replace_all(python_pbp_df$home_on_1, ' ', '.')
+python_pbp_df$home_on_2 <- str_replace_all(python_pbp_df$home_on_2, ' ', '.')
+python_pbp_df$home_on_3 <- str_replace_all(python_pbp_df$home_on_3, ' ', '.')
+python_pbp_df$home_on_4 <- str_replace_all(python_pbp_df$home_on_4, ' ', '.')
+python_pbp_df$home_on_5 <- str_replace_all(python_pbp_df$home_on_5, ' ', '.')
+python_pbp_df$home_on_6 <- str_replace_all(python_pbp_df$home_on_6, ' ', '.')
+python_pbp_df$away_goalie  <- str_replace_all(python_pbp_df$away_goalie, ' ', '.')
+python_pbp_df$home_goalie <- str_replace_all(python_pbp_df$home_goalie, ' ', '.')
+
+period1 <- subset(python_pbp_df$game_seconds, python_pbp_df$game_period == 1)
+period2 <- subset(python_pbp_df$game_seconds, python_pbp_df$game_period == 2) + 1200
+period3 <- subset(python_pbp_df$game_seconds, python_pbp_df$game_period == 3) + 2400
+
+gameseconds <- c(period1, period2, period3)
+python_pbp_df$game_seconds <- gameseconds
+python_pbp_df <- replace_na(python_pbp_df, list(event_length = 0))
+python_pbp_df$event_length <- ifelse(python_pbp_df$event_length == -1200, 0, python_pbp_df$event_length)
 write_delim(python_pbp_df, '~/HockeyStuff/xGGameBreakdowns/2018/20394/20394', delim = '|')
 #columns to drop: Time_Elapsed Ev_Zone Home_Zone p1_ID p2_ID p3_ID awayplayer1_id
 #Away_Goalie_Id, Home_Goalie_Id Home_Coach Away_Coach
