@@ -180,7 +180,7 @@ def twitter_text_parser(data_text, status_text, season):
 
     def three_name_adjuster(data_list):
         new_list = []
-        if 'EK' in data_list or 'VAN' in data_list:
+        if ' EK' in data_list or '.VAN ' in data_list:
             data_list = data_list.split(' ')
             new_list.append('{} {}'.format(data_list[0], data_list[1]))
             new_list.extend(data_list[2:])
@@ -401,12 +401,14 @@ def graph_creation(dataframe, graph_query):
 def three_name_parser(status_list):
     new_list = []
     status_list = list(map(str.lower, status_list))
-    if 'ek' in status_list or 'van' in status_list:
+    if ' ek ' in status_list or ' van ' in status_list:
         new_list.extend(status_list[:2])
         new_list.append('{} {}'.format(status_list[2], status_list[3]))
         new_list.extend(status_list[4:])
+        print(new_list)
         return new_list
     else:
+        print(status_list)
         return status_list
 
 class BotStreamer(tweepy.StreamListener):
@@ -456,10 +458,15 @@ class BotStreamer(tweepy.StreamListener):
 
             else:
                 status = three_name_parser(status)
+                print(status)
                 query = query_parse(status)
+                print(query)
                 query_text = query_creation(query)
+                print(query_text)
                 returned_data = database_query(query_text)
+                print(returned_data)
                 tweet_text = twitter_text_parser(returned_data, status, query[-1])
+                print(tweet_text)
                 self.api.update_status(status =  '@{}\n{}'.format(username,tweet_text),\
                        in_reply_to_status_id = status_id)
 
