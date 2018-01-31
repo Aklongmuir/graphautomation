@@ -144,7 +144,7 @@ def database_query(query):
               twitter_text_parser() function.
     '''
 
-    conn = psycopg2.connect("host=localhost dbname=nhl user=matt")
+    conn = psycopg2.connect(os.environ.get('DB_CONNECT'))
     cur = conn.cursor()
     cur.execute(query)
     rows = cur.fetchall()
@@ -405,10 +405,8 @@ def three_name_parser(status_list):
         new_list.extend(status_list[:2])
         new_list.append('{} {}'.format(status_list[2], status_list[3]))
         new_list.extend(status_list[4:])
-        print(new_list)
         return new_list
     else:
-        print(status_list)
         return status_list
 
 class BotStreamer(tweepy.StreamListener):
@@ -418,10 +416,10 @@ class BotStreamer(tweepy.StreamListener):
     query.  I also pass it the bots twitter api so it can then respond to those
     queries with the appropriate data.
     '''
-# Called when a new status arrives which is passed down from the on_data method of the StreamListener
     def __init__(self, api):
         self.api = api
 
+# Called when a new status arrives which is passed down from the on_data method of the StreamListener
     def on_status(self, status):
 #gets username of the person who tweeted bot
         username = status.user.screen_name
@@ -438,7 +436,7 @@ class BotStreamer(tweepy.StreamListener):
                 self.api.update_status(status =  '@{}\n You have insulted'\
                         'my mighty creator the God Emperor before you can use'\
                         'the bot again you must repent for choosing me over'\
-                        'him and seek suplication for your sins.'.format(\
+                        'him and seek supplication for your sins.'.format(\
                         username,tweet_text),\
                         in_reply_to_status_id = status_id)
             except:
@@ -458,15 +456,10 @@ class BotStreamer(tweepy.StreamListener):
 
             else:
                 status = three_name_parser(status)
-                print(status)
                 query = query_parse(status)
-                print(query)
                 query_text = query_creation(query)
-                print(query_text)
                 returned_data = database_query(query_text)
-                print(returned_data)
                 tweet_text = twitter_text_parser(returned_data, status, query[-1])
-                print(tweet_text)
                 self.api.update_status(status =  '@{}\n{}'.format(username,tweet_text),\
                        in_reply_to_status_id = status_id)
 
