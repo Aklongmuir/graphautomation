@@ -345,12 +345,9 @@ def graph_database_query(query_string):
     query_df = query_df.sort_values('game_date')
 
 
-    if len(query_df.iloc[:, 0].unique()) == 2:
-        query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
-                [query_df.columns[2]]\
-                .rolling(5).mean().reset_index(0, drop = True)
-    else:
-        query_df['moving_avg'] = query_df.iloc[:, 2].rolling(5).mean()
+    query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
+            [query_df.columns[2]]\
+            .rolling(5).mean().reset_index(0, drop = True)
 
     print(query_df.head())
     return query_df
