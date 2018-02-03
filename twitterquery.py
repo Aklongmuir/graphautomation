@@ -6,6 +6,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import random
 import os
+from sqlalchemy import create_engine, and_, or_
+from sqlalchemy.sql import func, select
+from sqlalchemy.schema import MetaData, Table
 
 def text_error_check(text):
     '''
@@ -32,42 +35,83 @@ def text_error_check(text):
 
 def query_creation(query_list):
     '''
-    This function creates an sql query to pass to the SQL db to collect the stats
-    for teams and players.  This will be passed to the database_query() function.
+    This function creates an sql query with SQL alchemy and then parses the
+    results into a list of strings so the twitter bot can post them
 
     Inputs:
     query_list - list parsed from the original tweet from the user online is
                  the output of the query_parse() function.
 
     Outputs:
-    sql_query - a string formatted to be a proper SQL query.
+    data - a list formatted so the bot can post the results to twitter.
     '''
-    if len(query_list) == 3:
-        if query_list[1][0:6] == 'player':
-            sql_query = 'SELECT player, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
-                        ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent, '\
-                        'ROUND(SUM(ixg)::NUMERIC, 4)'\
-                        ' FROM {} WHERE player = \'{}\' AND season = \'{}\' group by player;'.format(query_list[1],
-                        query_list[0], format_season(query_list[-1]))
-        else:
-            sql_query = 'SELECT team, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
-                        ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent'\
-                        ' FROM {} WHERE team = \'{}\' AND season = \'{}\' group by team;'.format(query_list[1],
-                        query_list[0], format_season(query_list[-1]))
-    elif len(query_list) == 4:
-        if query_list[2][0:6] == 'player':
-            sql_query = 'SELECT player, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
-                        ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent,'\
-                        'ROUND(SUM(ixg)::NUMERIC, 4)'\
-                        ' FROM {} WHERE (player = \'{}\' or player = \'{}\') AND (season = \'{}\') group by player;'.format(query_list[2],
-                        query_list[0], query_list[1], format_season(query_list[-1]))
-        else:
-            sql_query = 'SELECT team, ROUND((SUM(cf)/(SUM(cf)+sum(ca)))::NUMERIC, 4) * 100 as CF_Percent,'\
-                        ' ROUND((SUM(xgf)/(SUM(xgf) + SUM(xga)))::NUMERIC, 4) * 100 as xGF_Percent'\
-                        ' FROM {} WHERE (team = \'{}\' or team = \'{}\') AND (season = \'{}\') group by team;'.format(query_list[2],
-                        query_list[0], query_list[1], format_season(query_list[-1]))
 
-    return sql_query
+    engine = create_engine(os.environ.get('DB_CONNECT'))
+    conn = engine.connect()
+    metadata = MetaData()
+    metadata.reflect(bind = engine)
+    print(query_list)
+
+    if len(query_list) == 3:
+        database = metadata.tables[query_list[1]]
+        if query_list[1][0:6] == 'player':
+            sql_query = select([database.c.player,\
+                        (func.sum(database.c.cf)/\
+                        (func.sum(database.c.ca)+func.sum(database.c.cf))*100),\
+                        (func.sum(database.c.xgf)/\
+                        (func.sum(database.c.xga)+func.sum(database.c.xgf))*100),\
+                        func.sum(database.c.ixg)]).\
+                        where(and_(database.c.player == query_list[0],\
+                        database.c.season == format_season(query_list[-1]))).\
+                        group_by(database.c.player)
+        else:
+            sql_query = select([database.c.team,\
+                        (func.sum(database.c.cf)/\
+                        (func.sum(database.c.ca)+func.sum(database.c.cf))*100),\
+                        (func.sum(database.c.xgf)/\
+                        (func.sum(database.c.xga)+func.sum(database.c.xgf))*100)]).\
+                        where(and_(database.c.team == query_list[0],\
+                        database.c.season == format_season(query_list[-1])))\
+                        .group_by(database.c.team)
+    elif len(query_list) == 4:
+        database = metadata.tables[query_list[2]]
+        if query_list[2][0:6] == 'player':
+            sql_query = select([database.c.player,\
+                        (func.sum(database.c.cf)/\
+                        (func.sum(database.c.ca)+func.sum(database.c.cf))*100),\
+                        (func.sum(database.c.xgf)/\
+                        (func.sum(database.c.xga)+func.sum(database.c.xgf))*100),\
+                        func.sum(database.c.ixg)]).\
+                        where(and_(or_(database.c.player == query_list[0], \
+                        database.c.player == query_list[1]), \
+                        database.c.season == format_season(query_list[-1]))).\
+                        group_by(database.c.player)
+        else:
+            sql_query = select([database.c.team,\
+                        (func.sum(database.c.cf)/\
+                        (func.sum(database.c.ca)+func.sum(database.c.cf))*100),\
+                        (func.sum(database.c.xgf)/\
+                        (func.sum(database.c.xga)+func.sum(database.c.xgf))*100)]).\
+                        where(and_(or_(database.c.team == query_list[0], \
+                        database.c.team == query_list[1]), \
+                        database.c.season == format_season(query_list[-1]))).\
+                        group_by(database.c.team)
+
+    results = conn.execute(sql_query)
+    print(results)
+
+    results = list(map(list, results))
+    for x in results:
+        rounded = [round(y, 2) for y in x[1:]]
+        x[1:] = rounded
+
+    data = []
+    for row in results:
+        data.append('{}'.format(str(row).replace('[', '').replace(',', '')\
+                .replace(']', '').replace("'", '').replace('Decimal', '')))
+    conn.close()
+    print(data)
+    return data
 
 
 def query_parse(text_list):
@@ -131,29 +175,6 @@ def query_parse(text_list):
 
     return new_query
 
-def database_query(query):
-    '''
-    This function queries the database for statistical queries only and then
-    formats the data into a list for the twiiter API to post to answer
-    the query of the online user.
-
-    Inputs - a list that is the output of the query_parse() function
-
-    Outputs - a list that is stripped of the excess characters that are the
-              result of querying the sql database this will be passed to the
-              twitter_text_parser() function.
-    '''
-
-    conn = psycopg2.connect(os.environ.get('DB_CONNECT'))
-    cur = conn.cursor()
-    cur.execute(query)
-    rows = cur.fetchall()
-    data = []
-    for row in rows:
-        data.append('{}'.format(str(row).replace('(', '').replace(',', '')\
-                .replace(')', '').replace("'", '').replace('Decimal', '')))
-    conn.close()
-    return data
 
 def twitter_text_parser(data_text, status_text, season):
     '''
@@ -194,7 +215,7 @@ def twitter_text_parser(data_text, status_text, season):
         for data in data_text:
             data_list = three_name_adjuster(data)
             for stat, x in zip(stats, range(len(data_list[0:3]))):
-                data_list[x+1] = '{}: {}'.format(stat, data_list[x+1][:-2])
+                data_list[x+1] = '{}: {}'.format(stat, data_list[x+1])
 
             twitter_string += '\n'.join(data_list)
             twitter_string += '\n'
@@ -203,7 +224,7 @@ def twitter_text_parser(data_text, status_text, season):
         for data in data_text:
             data_list = data.split(' ')
             for stat, x in zip(stats, range(len(data_list[0:2]))):
-                data_list[x+1] = '{}: {}'.format(stat, data_list[x+1][:-2])
+                data_list[x+1] = '{}: {}'.format(stat, data_list[x+1])
 
             twitter_string += '\n'.join(data_list)
             twitter_string += '\n'
@@ -455,8 +476,7 @@ class BotStreamer(tweepy.StreamListener):
                 status = three_name_parser(status)
                 query = query_parse(status)
                 query_text = query_creation(query)
-                returned_data = database_query(query_text)
-                tweet_text = twitter_text_parser(returned_data, status, query[-1])
+                tweet_text = twitter_text_parser(query_text, status, query[-1])
                 self.api.update_status(status =  '@{}\n{}'.format(username,tweet_text),\
                        in_reply_to_status_id = status_id)
 
