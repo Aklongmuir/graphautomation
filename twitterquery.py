@@ -311,58 +311,50 @@ def format_season(number):
 
 def graph_query_creation(query_list):
     '''
-    Function to turn the parsed twitter query into an sql query for tweets
-    that are requesting graphs
+    Function to turn the parsed twitter query into a dataframe to plot moving
+    averages that are requesting graphs
 
     Inputs:
     query_list - list containing keywords from parsed twitter query
 
     Outputs:
-    sql_query - string representing the sql query needed to select the
-                appropriate data for the requested graph
+    query_df - dataframe created by the SQL Alchemy select statement with
+               moving average calculated
     '''
+
+    engine = create_engine(os.environ.get('DB_CONNECT'))
+    conn = engine.connect()
+    metadata = MetaData()
+    metadata.reflect(bind = engine)
 
     if len(query_list) == 4:
+        database = metadata.tables[query_list[3]]
         if query_list[-1][:6] == 'player':
-            sql_query = 'SELECT player, game_date, {} from {} where ' \
-                        'player = \'{}\' AND season = \'{}\';'\
-                        .format(query_list[1], query_list[3],\
-                        query_list[0], format_season(query_list[-2]))
+            sql_query = select([database.c.player, database.c.game_date,\
+                        database.c[query_list[1]]]).\
+                        where(and_(database.c.player == query_list[0], \
+                        database.c.season == format_season(query_list[-2])))
         else:
-            sql_query = 'SELECT team, game_date, {} from {} where ' \
-                        'team = \'{}\' AND season = \'{}\';'\
-                        .format(query_list[1], query_list[3],\
-                        query_list[0], format_season(query_list[-2]))
+            sql_query = select([database.c.team, database.c.game_date,\
+                        database.c[query_list[1]]]).\
+                        where(and_(database.c.team == query_list[0], \
+                        database.c.season == format_season(query_list[-2])))
     elif len(query_list) == 5:
+        database = metadata.tables[query_list[-1]]
         if query_list[-1][:6] == 'player':
-            sql_query = 'SELECT player, game_date, {} from {} where ' \
-                        '(player = \'{}\' or player = \'{}\') AND (season = \'{}\');'\
-                        .format\
-                        (query_list[2], query_list[-1], query_list[0], \
-                        query_list[1], format_season(query_list[-2]))
+            sql_query = select([database.c.player, database.c.game_date,\
+                        database.c[query_list[2]]]).\
+                        where(and_(or_(database.c.player == query_list[0], \
+                        database.c.player == query_list[1]),\
+                        database.c.season == format_season(query_list[-2])))
         else:
-            sql_query = 'SELECT team, game_date, {} from {} where ' \
-                        '(team = \'{}\' or team = \'{}\') AND (season = \'{}\');'\
-                        .format\
-                        (query_list[2], query_list[-1], query_list[0], \
-                        query_list[1], format_season(query_list[-2]))
+            sql_query = select([database.c.team, database.c.game_date,\
+                        database.c[query_list[2]]]).\
+                        where(and_(or_(database.c.team == query_list[0], \
+                        database.c.team == query_list[1]),\
+                        database.c.season == format_season(query_list[-2])))
 
-    return sql_query
-
-def graph_database_query(query_string):
-    '''
-    function to query the database and return the results as a pandas dataframe
-
-    Inputs:
-    query_string - string consisting of the sql query to execute this is the
-                   output of the graph_query_creation() function.
-
-    Outputs:
-    query_df - SQL query results stored in a pandas dataframe this will be the
-               input of the graph_creation() function
-    '''
-    conn = psycopg2.connect("host=localhost dbname=nhl user=matt")
-    query_df = pd.read_sql_query(query_string, conn)
+    query_df = pd.read_sql_query(sql_query, conn)
     query_df = query_df.sort_values('game_date')
 
 
@@ -372,6 +364,7 @@ def graph_database_query(query_string):
 
     print(query_df.head())
     return query_df
+
 
 def graph_creation(dataframe, graph_query):
     '''
@@ -465,8 +458,7 @@ class BotStreamer(tweepy.StreamListener):
             if 'graph' in status:
                 status = three_name_parser(status)
                 query = graph_query_parse(status)
-                graph_query_text = graph_query_creation(query)
-                graph_df = graph_database_query(graph_query_text)
+                graph_df = graph_query_creation(query)
                 graph_name = graph_creation(graph_df, query)
                 self.api.update_with_media(graph_name, status = '@{}'.format(username),\
                         in_reply_to_status_id = status_id)
