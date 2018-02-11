@@ -1,16 +1,17 @@
 import keylesstwitterpost as twitterpost
 import tweepy
 import sys
-import psycopg2
 import pandas as pd
 import matplotlib.pyplot as plt
 import random
 import os
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.sql import func, select
-from sqlalchemy.schema import MetaData, Table
+from sqlalchemy.schema import MetaData
+
 
 def text_error_check(text):
+
     '''
     Checks the query to make sure it meets certain parameters.  If so returns
     True if not returns False
@@ -32,6 +33,7 @@ def text_error_check(text):
         return False
     else:
         return True
+
 
 def query_creation(query_list):
     '''
