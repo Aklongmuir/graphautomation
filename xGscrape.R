@@ -8,7 +8,212 @@ Sys.setenv(TZ='EST')
 ###########              START HERE TO LOAD ALL FUNCTIONS             ###########
 #################################################################################
 
+################################################################################
+##This code written by Prashanth Iyer who can be found on twitter          #####
+##@iyer_prashanth                                                          #####
+################################################################################
+fun.draw_rink <- function() {
+    
+    
+    
+    xseq <- seq(-4, 4, length = 100)
+    theta1 <- seq(0, 2 * pi, length = 300)
+    theta <- seq(0, 2 * pi, length = 300)
+    dd <- (5 + 7 / 12) / 2
+    
+    ## Blank NHL Rink
+    
+    rink <- ggplot(data = data.frame(x = 1, y = 1), aes(x, y)) + 
+        
+        geom_path(data = data.frame(
+            x = c(15, 87 + 13 * sin(seq(0, pi / 2, length = 20)), 
+                  87 + 13 * sin(seq(pi / 2, 0, length = 20)), 15), 
+            y = c(-42.5, -42.5 + 15 - 15 * cos(seq(0, pi / 2, length = 20)), 
+                  42.5 - 15 + 15 * cos(seq(pi / 2, 0, length = 20)), 42.5))) + 
+        geom_path(data = data.frame(
+            x = c(15, -87 - 13 * sin(seq(0, pi / 2, length = 20)), 
+                  -87 - 13 * sin(seq(pi / 2, 0, length = 20)), 15), 
+            y = c(-42.5, -42.5 + 15 - 15 * cos(seq(0, pi / 2, length = 20)), 
+                  42.5 - 15 + 15 * cos(seq(pi / 2, 0, length = 20)), 42.5))) + 
+        ## Goal Lines
+        geom_path(data = data.frame(x = c(89),
+                                    y = c(42.5 - 15 + sqrt(15^2 - (15 - 11)^2), 
+                                          -(42.5 - 15 + sqrt(15^2 - (15 - 11)^2)))), 
+                  color = 'red') + 
+        geom_path(data = data.frame(x = c(-89), 
+                                    y = c(42.5 - 15 + sqrt(15^2 - (15 - 11)^2), 
+                                          -(42.5 - 15 + sqrt(15^2 - (15 - 11)^2)))), 
+                  color = 'red') +
+        ## Nets
+        geom_path(data = data.frame(x = c(90, 92, 92, 90)), y = c(-3, -3, 3, 3)) + 
+        geom_path(data = data.frame(x = c(-90, -92, -92, -90), y = c(-3,-3, 3, 3))) +
+        
+        ## Restricted Area
+        geom_segment(aes(x = 89, y = -11, xend = 100, yend = -14), color = 'red') + 
+        geom_segment(aes(x = 89, y = 11, xend = 100, yend = 14), color = 'red') + 
+        geom_segment(aes(x = -89, y = -11, xend = -100, yend = -14), color = 'red') + 
+        geom_segment(aes(x = -89, y = 11, xend =-100, yend = 14), color = 'red') +
+        
+        ## Red Line (Center Ice)
+        geom_segment(aes(x = 0, y = -42.5, xend = 0, yend = 42.5), color = 'red', size = 1) +
+        
+        ## Blue Lines
+        geom_segment(aes(x = 25, y = -42.5, xend = 25,  yend = 42.5), color = 'blue', size = 1) + 
+        geom_segment(aes(x = -25, y = -42.5, xend = -25,  yend = 42.5), color = 'blue', size = 1) +
+        
+        ## Crease
+        geom_polygon(data = data.frame(x = 1 * c(89, 83+xseq^2 / 4^2 * 1.5, 89),
+                                       y = c(-4, xseq, 4)), 
+                     color = 'red', fill = 'deepskyblue2') + 
+        geom_polygon(data = data.frame(x = -1 * c(89, 83 + xseq^2 / 4^2 * 1.5, 89),
+                                       y = c(-4, xseq, 4)), 
+                     color = 'red', fill = 'deepskyblue2') +
+        
+        ## Center Ice Circle
+        geom_path(data = data.frame(x = 15 * sin(theta1)), 
+                  y = 15 * cos(theta1), color = 'deepskyblue2') +
+        
+        ## Faceoff Dots
+        geom_polygon(data = data.frame(y = 22 + 1 * cos(theta), 
+                                       x = 20 + 1 * sin(theta)), 
+                     color = "red", fill = "red") + 
+        geom_polygon(data = data.frame(y = 22 + 1 * cos(theta), 
+                                       x = -20 + 1 * sin(theta)), 
+                     color = "red", fill = 'red') + 
+        geom_polygon(data = data.frame(y = -22 + 1 * cos(theta), 
+                                       x = -20 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = -22 + 1 * cos(theta), 
+                                       x = 20 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = 22 + 1 * cos(theta), 
+                                       x = -69 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = 22 + 1 * cos(theta), 
+                                       x = 69 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = -22 + 1 * cos(theta), 
+                                       x = -69 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = -22 + 1 * cos(theta), 
+                                       x = 69 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') +
+        
+        ## Faceoff Circles
+        geom_segment(aes(y = 22 - 0.75, x = 69 - 2, 
+                         yend = 22 - 0.75, xend = 69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = 69 - 2, 
+                         yend = 22 + 0.75, xend = 69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = 69 + 2, 
+                         yend = 22 + 0.75, xend = 69 + 6), color= 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = 69 - 2, 
+                         yend = 22 - 0.75, xend = 69 - 6), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = 69 - 2, 
+                         yend = -22 + 0.75, xend = 69 - 6), color= 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = 69 + 2, 
+                         yend = -22 + 0.75, xend = 69 + 6), color= 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = 69 - 2, 
+                         yend = -22 - 0.75, xend = 69 - 6), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = 69 + 2, 
+                         yend = -22 - 0.75, xend = 69 + 6), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = 69 + 2, 
+                         yend = 22 - 0.75, xend = 69 + 6), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = -69 - 2, 
+                         yend = 22 + 0.75, xend = -69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = -69 - 2, 
+                         yend = 22 - 0.75, xend = -69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = -69 + 2, 
+                         yend = 22 + 0.75, xend = -69 + 6), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = -69 - 2, 
+                         yend = -22 + 0.75, xend = -69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = -69 + 2, 
+                         yend = 22 - 0.75, xend = -69 + 6), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = -69 + 2, 
+                         yend = -22 + 0.75, xend = -69 + 6), color= 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = -69 - 2, 
+                         yend = -22 - 0.75, xend = -69 - 6), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = -69 + 2, 
+                         yend = -22 - 0.75, xend = -69 + 6), color = 'red') + 
+        geom_segment(aes(y = 22 - 15, x = 69 - dd, 
+                         yend = 22 - 17, xend = 69 - dd), color = 'red') + 
+        geom_segment(aes(y = 22 - 15, x = 69 + dd, 
+                         yend = 22 - 17, xend = 69 + dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 15, x = 69 + dd, 
+                         yend = 22+17, xend = 69 + dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 15, x = 69 - dd, 
+                         yend = 22 + 17, xend = 69 - dd), color = 'red') + 
+        geom_segment(aes(y = -22 + 15, x = 69 - dd, 
+                         yend = -22 + 17, xend = 69 - dd), color = 'red') + 
+        geom_segment(aes(y = -22 + 15, x = 69 + dd, 
+                         yend = -22 + 17, xend = 69 + dd), color = 'red') + 
+        geom_segment(aes(y = -22 - 15, x = 69 - dd, 
+                         yend = -22 - 17, xend = 69 - dd), color= 'red') + 
+        geom_segment(aes(y = -22 - 15, x = 69 + dd, 
+                         yend = -22 - 17, xend = 69 + dd), color = 'red') + 
+        geom_segment(aes(y = -22 + 15, x = -69 + dd, 
+                         yend = -22 + 17, xend = -69 + dd), color = 'red') + 
+        geom_segment(aes(y = -22 - 15, x = -69 - dd, 
+                         yend = -22 - 17, xend = -69 - dd), color = 'red') + 
+        geom_segment(aes(y = -22 - 15, x = -69 + dd, 
+                         yend = -22 - 17, xend = -69 + dd), color = 'red') + 
+        geom_segment(aes(y = -22 + 15, x = -69 - dd, 
+                         yend = -22 + 17, xend = -69 - dd), color = 'red') + 
+        geom_segment(aes(y = 22 - 15, x = -69 + dd, 
+                         yend = 22 - 17, xend = -69 + dd), color = 'red') + 
+        geom_segment(aes(y = 22 - 15, x = -69 - dd, 
+                         yend = 22 - 17, xend = -69 - dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 15, x = -69 - dd, 
+                         yend = 22 + 17, xend = -69 - dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 15, x = -69 + dd, 
+                         yend = 22 + 17, xend = -69 + dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = 69 + 2, 
+                         yend = 22 + 3.75, xend = 69 + 2), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = 69 - 2, 
+                         yend = 22 + 3.75, xend = 69 - 2), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = 69 + 2, 
+                         yend = 22 - 3.75, xend = 69 + 2), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = 69 - 2, 
+                         yend = 22 - 3.75, xend = 69 - 2), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = -69 + 2, 
+                         yend = 22 + 3.75, xend = -69 + 2), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = -69 - 2, 
+                         yend = 22 + 3.75, xend = -69 - 2), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = -69 + 2, 
+                         yend = 22 - 3.75, xend = -69 + 2), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = -69 - 2, 
+                         yend = 22 - 3.75, xend = -69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = -69 + 2, 
+                         yend = -22 - 3.75, xend = -69 + 2), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = -69 - 2, 
+                         yend = -22 - 3.75, xend = -69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = -69 + 2, 
+                         yend = -22 + 3.75, xend = -69 + 2), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = -69 - 2, 
+                         yend = -22 + 3.75, xend = -69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = 69 + 2, 
+                         yend = -22 + 3.75, xend = 69 + 2), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = 69 - 2, 
+                         yend = -22 - 3.75, xend = 69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = 69 - 2, 
+                         yend = -22 + 3.75, xend = 69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = 69 + 2, 
+                         yend = -22 - 3.75, xend = 69 + 2), color = 'red') + 
+        geom_path(data = data.frame(y = 22 + 15 * cos(theta), 
+                                    x = 69 + 15 * sin(theta)), color = 'red') + 
+        geom_path(data = data.frame(y = 22 + 15 * cos(theta), 
+                                    x = -69 + 15 * sin(theta)), color = 'red') + 
+        geom_path(data = data.frame(y = -22 + 15 * cos(theta), 
+                                    x = -69 + 15 * sin(theta)), color = 'red') + 
+        geom_path(data = data.frame(y = -22 + 15 * cos(theta), 
+                                    x = 69 + 15 * sin(theta)), color = 'red') + 
+        
+        theme_void()
+    
+    
+    
+}
 
+rink <- fun.draw_rink() + coord_fixed()
 
 
 
@@ -4877,7 +5082,7 @@ for(game_number in games[[1]]){
                         caption = 'by @Matt_Barlowe')
 
     #plots xG locations and values for each team
-    xg_locations_plot <- ggplot() +
+    xg_locations_plot <- rink +
         geom_point(aes(x = -abs(coords_x), y = coords_y, size = xG),
             data = subset(fenwick_pbp, fenwick_pbp$event_team == home_team &
             fenwick_pbp$event_type %in% c('SHOT', 'MISS')),
@@ -4896,40 +5101,7 @@ for(game_number in games[[1]]){
             fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[away_team],
             shape = 15) +
         labs(title = xg_locations_title, subtitle = final_xg_score_location,
-             caption = 'by @Matt_Barlowe') +
-        geom_segment(aes(x = -87.95, y = -39, xend = -87.95, yend = 39), color = 'red') +
-        geom_segment(aes(x = 87.95, y = -39, xend = 87.95, yend = 39), color = 'red') +
-        geom_segment(aes(x = 0, y = -42, xend = 0, yend = 42), color = 'red') +
-        geom_segment(aes(x = -26, y = -42, xend = -26, yend = 42), color = 'blue') +
-        geom_segment(aes(x = 26, y = -42, xend = 26, yend = 42), color = 'blue') +
-        geom_segment(aes(x = -75, y = 42, xend = 75, yend = 42)) +
-        geom_segment(aes(x = -75, y = -42, xend = 75, yend = -42)) +
-        geom_curve(aes(x = -75, y = -42, xend = -99, yend = -25), curvature = -0.4) +
-        geom_curve(aes(x = -75, y = 42, xend = -99, yend = 25), curvature = 0.4) +
-        geom_segment(aes(x = -99, y = -25, xend = -99, yend = 25)) +
-        geom_curve(aes(x = 75, y = -42, xend = 99, yend = -25), curvature = 0.4) +
-        geom_curve(aes(x = 75, y = 42, xend = 99, yend = 25), curvature = -0.4) +
-        geom_segment(aes(x = 99, y = -25, xend = 99, yend = 25)) +
-        geom_segment(aes(x = -75, y =42, xend = 75, yend = 42)) +
-        geom_segment(aes(x = -75, y = -42, xend = 75, yend = -42)) +
-        geom_circle(aes(x0 = 0, y0 = 0, r = 15), color = 'blue') +
-        geom_circle(aes(x0 = 65.95, y0 = 22, r = 15), color = 'red') +
-        geom_circle(aes(x0 = 65.95, y0 = -22, r = 15), color = 'red') +
-        geom_circle(aes(x0 = -65.95, y0 = 22, r = 15), color = 'red') +
-        geom_circle(aes(x0 = -65.95, y0 = -22, r = 15), color = 'red') +
-        geom_segment(aes(x = -91.61, y = -3, xend = -91.61, yend = 3), color = 'red') +
-        geom_segment(aes(x = 91.61, y = -3, xend = 91.61, yend = 3), color = 'red') +
-        geom_segment(aes(x = 91.61, y = -3, xend = 87.95, yend = -3), color = 'red') +
-        geom_segment(aes(x = 91.61, y = 3, xend = 87.95, yend = 3), color = 'red') +
-        geom_segment(aes(x = -91.61, y = -3, xend = -87.95, yend = -3), color = 'red') +
-        geom_segment(aes(x = -91.61, y = 3, xend = -87.95, yend = 3), color = 'red') +
-        geom_point(aes(x = c(65.95, 65.95, -65.95, -65.95), y = c(22, -22, 22, -22)),
-                   color = 'red', size = 2) +
-        geom_point(aes(x = 0, y= 0), color = 'blue', size = 2) +
-        theme_void() +
-        geom_point(aes(x = c(-21, -21, 21, 21), y = c(22, -22, 22, -22)),
-                   color = 'red', size = 2) +
-        scale_y_continuous(limits = c(-42, 42))
+             caption = 'by @Matt_Barlowe rink by @iyer_prashanth') 
 
     ############################################################################
     ##Saves all graphs to a folder designated by game number and adds the full##
