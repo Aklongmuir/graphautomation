@@ -198,30 +198,9 @@ fun.draw_rink <- function() {
                                 x = 69 + 15 * sin(theta)), color = 'red') + 
         
     theme_void()
-    
-    
-    
 }
 
 rink <- fun.draw_rink() + coord_fixed()
 
-test <- rink +
-    geom_point(aes(x = -abs(coords_x), y = coords_y, size = xG),
-               data = subset(fenwick_pbp, fenwick_pbp$event_team == home_team &
-                                 fenwick_pbp$event_type %in% c('SHOT', 'MISS')),
-               color = team_colors[home_team], shape = 0) +
-    geom_point(aes(x = -abs(coords_x), y = coords_y, size = xG,
-                   color = xG_location_graph$event_team), data =
-                   subset(fenwick_pbp, fenwick_pbp$event_team == home_team &
-                              fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[home_team],
-               shape = 15) +
-    geom_point(aes(x = abs(coords_x), y = coords_y, size = xG),
-               data = subset(fenwick_pbp, fenwick_pbp$event_team == away_team &
-                                 fenwick_pbp$event_type %in% c('SHOT', 'MISS')),
-               color = team_colors[away_team], shape = 0) +
-    geom_point(aes(x = abs(coords_x), y = coords_y, size = xG), data =
-                   subset(fenwick_pbp, fenwick_pbp$event_team == away_team &
-                              fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[away_team],
-               shape = 15) + labs(title = xg_locations_title, subtitle = final_xg_score_location,
-                                  caption = 'by @Matt_Barlowe')
+
      
