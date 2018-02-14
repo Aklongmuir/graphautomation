@@ -5101,7 +5101,7 @@ for(game_number in games[[1]]){
             fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[away_team],
             shape = 15) +
         labs(title = xg_locations_title, subtitle = final_xg_score_location,
-             caption = 'by @Matt_Barlowe rink by @iyer_prashanth') 
+             caption = 'by @Matt_Barlowe') 
 
     ############################################################################
     ##Saves all graphs to a folder designated by game number and adds the full##
