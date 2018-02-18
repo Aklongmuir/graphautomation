@@ -3333,6 +3333,8 @@ daily_player_stats <- NULL
 daily_team_stats <- NULL
 daily_player_stats_5v5 <- NULL
 daily_team_stats_5v5 <- NULL
+daily_goalie_stats <- NULL
+daily_goalie_stats_5v5 <- NULL
 unscraped_games <-c()
 
 #assigns colors to each team for graphing purposes
@@ -5182,6 +5184,9 @@ for(game_number in games[[1]]){
     goalie_stats_all_sits <- rbind(home_goalie_stats, away_goalie_stats)
     goalie_stats_5v5 <- rbind(home_goalie_stats_5v5, away_goalie_stats_5v5)
     
+    daily_goalie_stats <- rbind(daily_goalie_stats, goalie_stats_all_sits)
+    daily_goalie_stats_5v5 <- rbind(daily_goalie_stats_5v5, goalie_stats_5v5)
+    
     #create unique keys for each table 
     
     goalie_stats_all_sits$db_key <- paste0(goalie_stats_all_sits$goalie,
@@ -5413,7 +5418,7 @@ for(game_number in games[[1]]){
     write_delim(team_stats_all_sits, paste(toString(game_number),
                                           'teamstats'), delim = '|')
     write_delim(goalie_stats_all_sits, 'goaliestats', delim = '|')
-    write_delim(goalie_stats_5v5, 'goaliestats5v5', delim = '|')
+    write_delim(goalie_stats_5v5, 'goaliestats5v5', delim = '|')d
 
 
 
@@ -5461,6 +5466,8 @@ write_delim(daily_team_stats, 'dailyteamstats', delim = '|')
 write_delim(daily_adj_team_stats_5v5, 'dailyteamstatsadj5v5', delim = '|')
 write_delim(daily_team_stats_5v5, 'dailyteamstats5v5', delim = '|')
 write_delim(daily_pbp, 'dailypbp', delim = '|')
+write_delim(daily_goalie_stats, 'dailygoaliestats', delim = '|')
+write_delim(daily_goalie_stats_5v5, 'dailygoaliestats5v5', delim = '|')
 
 
 #log the games the scraper can't scrape
