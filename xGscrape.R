@@ -3514,6 +3514,31 @@ for(game_number in games[[1]]){
                                    pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
                                pbp_df$home_on_6)
     
+    #create unique key for each row
+    pbp_df$db_key <- paste0(as.character(pbp_df$game_id),
+                            as.character(pbp_df$event_index))
+    
+    #create LD, MD, and HD dummy variables
+    pbp_df$HD <- ifelse(abs(pbp_df$coords_x)<87.95 & 
+                            abs(pbp_df$coords_x) > 67.95 &
+                            pbp_df$coords_y<8 & pbp_df$coords_y > -8, 1, 0) 
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x < 87.95) & 
+                            abs(pbp_df$coords_y > 67.95) & 
+                            abs(pbp_df$coords_y) < (-0.7*abs(pbp_df$coords_x) 
+                                                    + 69.565) &
+                            abs(pbp_df$coords_y) > 8, 
+                        1, 0)
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x < 67.95) & 
+                            abs(pbp_df$coords_x > 52.95) &
+                            pbp_df$coords_y < 22 & pbp_df$coords_y > -22, 
+                        1, pbp_df$MD)
+    
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x > 25) & 
+                            abs(pbp_df$coords_x < 52.95) &
+                            pbp_df$coords_y < 8 & pbp_df$coords_y > -8, 
+                        1, pbp_df$MD)
+    
+    pbp_df$LD <- ifelse(pbp_df$MD == 0 & pbp_df$HD == 0, 1, 0)
 
     ############################################################################
     ##Creating the model features including distance, angle, time diff between##
@@ -4960,6 +4985,253 @@ for(game_number in games[[1]]){
     #add to the daily team dataframe to write to text file for sql insertion
     daily_team_stats_5v5 <- rbind(team_stats_5v5,
                                       daily_team_stats_5v5)
+    
+    ############################################################################
+    ##Creating goalie stats and adding unique keys to all the data tables    ###
+    ############################################################################
+    #calculate goalie stats
+    home_goalie_pbp <- subset(pbp_df, !is.na(pbp_df$home_goalie))
+    away_goalie_pbp <- subset(pbp_df, !is.na(pbp_df$away_goalie))
+    home_goalie_pbp_5v5 <- pbp_df_5v5
+    away_goalie_pbp_5v5 <- pbp_df_5v5
+    
+    #calculate all situation goalie stats
+    home_goalie_stats <- home_goalie_pbp %>%
+        summarise(goalie = first(home_goalie), 
+                  game_id = first(game_id),
+                  game_date = first(game_date),
+                  season = first(season),
+                  team = first(home_team),
+                  TOI = sum(event_length)/60, CF = sum(home_corsi),
+                  CA = sum(away_corsi), FA = sum(away_corsi), xGA = sum(away_xG),
+                  SA = sum(ifelse(event_team == away_team & 
+                                      (event_type == "GOAL" | 
+                                           event_type == 'SHOT'), 1, 0)), 
+                  GA = sum(ifelse(event_team == away_team & 
+                                      event_type == "GOAL", 1, 0)),
+                  LDGA = sum(ifelse(event_team == away_team & 
+                                        event_type == "GOAL" &
+                                        LD == 1, 1, 0)),
+                  MDGA = sum(ifelse(event_team == away_team & 
+                                        event_type == "GOAL" &
+                                        MD == 1, 1, 0)),
+                  HDGA = sum(ifelse(event_team == away_team & 
+                                        event_type == "GOAL" &
+                                        HD == 1, 1, 0)),
+                  LDA = sum(ifelse(event_team == away_team &
+                                       LD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0)),
+                  MDA = sum(ifelse(event_team == away_team &
+                                       MD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0)),
+                  HDA = sum(ifelse(event_team == away_team &
+                                       HD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0))
+        )
+    
+    home_goalie_stats <- home_goalie_stats %>%
+        mutate(sv_percent = round(1-(GA/SA), 3), 
+               fsv_percent = round(1-(GA/FA), 3),
+               xfsv_percent = round(1-(xGA/FA), 3), 
+               dfsv_percent = fsv_percent-xfsv_percent,
+               hdsv_percent = round(1-(HDGA/HDA),3),
+               mdsv_percent = round(1-(MDGA/MDA),3),
+               ldsv_percent = round(1-(LDGA/LDA),3))
+    
+    away_goalie_stats <- away_goalie_pbp %>%
+        summarise(goalie = first(away_goalie), 
+                  game_id = first(game_id),
+                  game_date = first(game_date),
+                  season = first(season),
+                  team = first(away_team),
+                  TOI = sum(event_length)/60, CF = sum(away_corsi),
+                  CA = sum(home_corsi), FA = sum(home_corsi), xGA = sum(home_xG),
+                  SA = sum(ifelse(event_team == home_team & 
+                                      (event_type == "GOAL" | 
+                                           event_type == 'SHOT'), 1, 0)), 
+                  GA = sum(ifelse(event_team == home_team & 
+                                      event_type == "GOAL", 1, 0)),
+                  LDGA = sum(ifelse(event_team == home_team & 
+                                        event_type == "GOAL" &
+                                        LD == 1, 1, 0)),
+                  MDGA = sum(ifelse(event_team == home_team & 
+                                        event_type == "GOAL" &
+                                        MD == 1, 1, 0)),
+                  HDGA = sum(ifelse(event_team == home_team & 
+                                        event_type == "GOAL" &
+                                        HD == 1, 1, 0)),
+                  LDA = sum(ifelse(event_team == home_team &
+                                       LD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0)),
+                  MDA = sum(ifelse(event_team == home_team &
+                                       MD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0)),
+                  HDA = sum(ifelse(event_team == home_team &
+                                       HD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0))
+        )
+    
+    away_goalie_stats <- away_goalie_stats %>%
+        mutate(sv_percent = round(1-(GA/SA), 3), 
+               fsv_percent = round(1-(GA/FA), 3),
+               xfsv_percent = round(1-(xGA/FA), 3), 
+               dfsv_percent = fsv_percent-xfsv_percent,
+               hdsv_percent = round(1-(HDGA/HDA),3),
+               mdsv_percent = round(1-(MDGA/MDA),3),
+               ldsv_percent = round(1-(LDGA/LDA),3))
+    
+    goalie_stats_all_sits <- rbind(home_goalie_stats, away_goalie_stats)
+    
+    #calculate goalie 5v5 stats
+    home_goalie_stats_5v5 <- home_goalie_pbp_5v5 %>%
+        summarise(goalie = first(home_goalie), 
+                  game_id = first(game_id),
+                  game_date = first(game_date),
+                  season = first(season),
+                  team = first(home_team),
+                  TOI = sum(event_length)/60, CF = sum(home_corsi),
+                  CA = sum(away_corsi), FA = sum(away_corsi), xGA = sum(away_xG),
+                  SA = sum(ifelse(event_team == away_team & 
+                                      (event_type == "GOAL" | 
+                                           event_type == 'SHOT'), 1, 0)), 
+                  GA = sum(ifelse(event_team == away_team & 
+                                      event_type == "GOAL", 1, 0)),
+                  LDGA = sum(ifelse(event_team == away_team & 
+                                        event_type == "GOAL" &
+                                        LD == 1, 1, 0)),
+                  MDGA = sum(ifelse(event_team == away_team & 
+                                        event_type == "GOAL" &
+                                        MD == 1, 1, 0)),
+                  HDGA = sum(ifelse(event_team == away_team & 
+                                        event_type == "GOAL" &
+                                        HD == 1, 1, 0)),
+                  LDA = sum(ifelse(event_team == away_team &
+                                       LD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0)),
+                  MDA = sum(ifelse(event_team == away_team &
+                                       MD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0)),
+                  HDA = sum(ifelse(event_team == away_team &
+                                       HD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0))
+        )
+    
+    home_goalie_stats_5v5 <- home_goalie_stats_5v5 %>%
+        mutate(sv_percent = round(1-(GA/SA), 3), 
+               fsv_percent = round(1-(GA/FA), 3),
+               xfsv_percent = round(1-(xGA/FA), 3), 
+               dfsv_percent = fsv_percent-xfsv_percent,
+               hdsv_percent = round(1-(HDGA/HDA),3),
+               mdsv_percent = round(1-(MDGA/MDA),3),
+               ldsv_percent = round(1-(LDGA/LDA),3))
+    
+    away_goalie_stats_5v5 <- away_goalie_pbp_5v5 %>%
+        summarise(goalie = first(away_goalie), 
+                  game_id = first(game_id),
+                  game_date = first(game_date),
+                  season = first(season),
+                  team = first(away_team),
+                  TOI = sum(event_length)/60, CF = sum(away_corsi),
+                  CA = sum(home_corsi), FA = sum(home_corsi), xGA = sum(home_xG),
+                  SA = sum(ifelse(event_team == home_team & 
+                                      (event_type == "GOAL" | 
+                                           event_type == 'SHOT'), 1, 0)), 
+                  GA = sum(ifelse(event_team == home_team & 
+                                      event_type == "GOAL", 1, 0)),
+                  LDGA = sum(ifelse(event_team == home_team & 
+                                        event_type == "GOAL" &
+                                        LD == 1, 1, 0)),
+                  MDGA = sum(ifelse(event_team == home_team & 
+                                        event_type == "GOAL" &
+                                        MD == 1, 1, 0)),
+                  HDGA = sum(ifelse(event_team == home_team & 
+                                        event_type == "GOAL" &
+                                        HD == 1, 1, 0)),
+                  LDA = sum(ifelse(event_team == home_team &
+                                       LD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0)),
+                  MDA = sum(ifelse(event_team == home_team &
+                                       MD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0)),
+                  HDA = sum(ifelse(event_team == home_team &
+                                       HD == 1 &
+                                       (event_type == "GOAL" |
+                                            event_type == "SHOT"), 1, 0))
+        )
+    
+    away_goalie_stats_5v5 <- away_goalie_stats_5v5 %>%
+        mutate(sv_percent = round(1-(GA/SA), 3), 
+               fsv_percent = round(1-(GA/FA), 3),
+               xfsv_percent = round(1-(xGA/FA), 3), 
+               dfsv_percent = fsv_percent-xfsv_percent,
+               hdsv_percent = round(1-(HDGA/HDA),3),
+               mdsv_percent = round(1-(MDGA/MDA),3),
+               ldsv_percent = round(1-(LDGA/LDA),3))
+    
+    goalie_stats_all_sits <- rbind(home_goalie_stats, away_goalie_stats)
+    goalie_stats_5v5 <- rbind(home_goalie_stats_5v5, away_goalie_stats_5v5)
+    
+    #create unique keys for each table 
+    
+    goalie_stats_all_sits$db_key <- paste0(goalie_stats_all_sits$goalie,
+                                           goalie_stats_all_sits$game_date,
+                                           goalie_stats_all_sits$game_id)
+    
+    goalie_stats_5v5$db_key <- paste0(goalie_stats_5v5$goalie,
+                                      goalie_stats_5v5$game_date,
+                                      goalie_stats_5v5$game_id)
+    
+    player_5v5_adj$db_key <- paste0(player_5v5_adj$player, 
+                                    player_5v5_adj$game_date,
+                                    player_5v5_adj$game_id,
+                                    player_5v5_adj$season)
+    
+    player_all_sits_adj$db_key <- paste0(player_all_sits_adj$player, 
+                                         player_all_sits_adj$game_date,
+                                         player_all_sits_adj$game_id,
+                                         player_all_sits_adj$season)
+    
+    player_stats$db_key <- paste0(player_stats$player, 
+                                  player_stats$game_date,
+                                  player_stats$game_id,
+                                  player_stats$season)
+    
+    player_stats_5v5$db_key <- paste0(player_stats_5v5$player, 
+                                      player_stats_5v5$game_date,
+                                      player_stats_5v5$game_id,
+                                      player_stats_5v5$season)
+    
+    team_adj_stats_5v5$db_key <- paste0(team_adj_stats_5v5$Team,
+                                        team_adj_stats_5v5$game_date,
+                                        team_adj_stats_5v5$game_id,
+                                        team_adj_stats_5v5$season)
+    
+    team_adj_stats_all_sits$db_key <- paste0(team_adj_stats_all_sits$Team,
+                                             team_adj_stats_all_sits$game_date,
+                                             team_adj_stats_all_sits$game_id,
+                                             team_adj_stats_all_sits$season)
+    
+    team_stats_5v5$db_key <- paste0(team_stats_5v5$Team,
+                                    team_stats_5v5$game_date,
+                                    team_stats_5v5$game_id,
+                                    team_stats_5v5$season)
+    
+    team_stats_all_sits$db_key <- paste0(team_stats_all_sits$Team,
+                                         team_stats_all_sits$game_date,
+                                         team_stats_all_sits$game_id,
+                                         team_stats_all_sits$season)
+    
     ############################################################################
     ##Creates dataframe for running xG graphs and then plots of all situations##
     ##running xg, 5v5 running xg, xg locations, and player stats including xGF##
@@ -5140,6 +5412,8 @@ for(game_number in games[[1]]){
                                           'teamstats5v5'), delim = '|')
     write_delim(team_stats_all_sits, paste(toString(game_number),
                                           'teamstats'), delim = '|')
+    write_delim(goalie_stats_all_sits, 'goaliestats', delim = '|')
+    write_delim(goalie_stats_5v5, 'goaliestats5v5', delim = '|')
 
 
 
@@ -5187,6 +5461,7 @@ write_delim(daily_team_stats, 'dailyteamstats', delim = '|')
 write_delim(daily_adj_team_stats_5v5, 'dailyteamstatsadj5v5', delim = '|')
 write_delim(daily_team_stats_5v5, 'dailyteamstats5v5', delim = '|')
 write_delim(daily_pbp, 'dailypbp', delim = '|')
+
 
 #log the games the scraper can't scrape
 if (length(unscraped_games) > 0){
