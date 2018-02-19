@@ -1613,6 +1613,7 @@ for (season in seasons){
                      as.character(season), '/', as.character(game_number)))
         
     
+        write_delim(pbp_df, toString(game_number), delim = '|')
         write_delim(player_all_sits_adj, paste(toString(game_number),
                                                'playerstatsadj'), delim = '|')
         write_delim(player_5v5_adj, paste(toString(game_number),
