@@ -3516,31 +3516,7 @@ for(game_number in games[[1]]){
                                    pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
                                pbp_df$home_on_6)
     
-    #create unique key for each row
-    pbp_df$db_key <- paste0(as.character(pbp_df$game_id),
-                            as.character(pbp_df$event_index))
     
-    #create LD, MD, and HD dummy variables
-    pbp_df$HD <- ifelse(abs(pbp_df$coords_x)<87.95 & 
-                            abs(pbp_df$coords_x) > 67.95 &
-                            pbp_df$coords_y<8 & pbp_df$coords_y > -8, 1, 0) 
-    pbp_df$MD <- ifelse(abs(pbp_df$coords_x < 87.95) & 
-                            abs(pbp_df$coords_y > 67.95) & 
-                            abs(pbp_df$coords_y) < (-0.7*abs(pbp_df$coords_x) 
-                                                    + 69.565) &
-                            abs(pbp_df$coords_y) > 8, 
-                        1, 0)
-    pbp_df$MD <- ifelse(abs(pbp_df$coords_x < 67.95) & 
-                            abs(pbp_df$coords_x > 52.95) &
-                            pbp_df$coords_y < 22 & pbp_df$coords_y > -22, 
-                        1, pbp_df$MD)
-    
-    pbp_df$MD <- ifelse(abs(pbp_df$coords_x > 25) & 
-                            abs(pbp_df$coords_x < 52.95) &
-                            pbp_df$coords_y < 8 & pbp_df$coords_y > -8, 
-                        1, pbp_df$MD)
-    
-    pbp_df$LD <- ifelse(pbp_df$MD == 0 & pbp_df$HD == 0, 1, 0)
 
     ############################################################################
     ##Creating the model features including distance, angle, time diff between##
@@ -3595,6 +3571,9 @@ for(game_number in games[[1]]){
     pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in%
                                           c('Ev0', '0vE'),
                                             'PS', pbp_df$shooter_strength)
+    
+    pbp_df$coords_x[is.na(pbp_df$coords_x)] <- 0
+    pbp_df$coords_y[is.na(pbp_df$coords_y)] <- 0
     ############################################################################
     ##Calculates xG values for each event from the fenwick events subset of   ##
     ## the pbp_df and then merges it back to the pbp_df.                      ##
@@ -4988,14 +4967,229 @@ for(game_number in games[[1]]){
     daily_team_stats_5v5 <- rbind(team_stats_5v5,
                                       daily_team_stats_5v5)
     
+    
+    
+    player_5v5_adj$db_key <- paste0(player_5v5_adj$player, 
+                                    player_5v5_adj$game_date,
+                                    player_5v5_adj$game_id,
+                                    player_5v5_adj$season)
+    
+    player_all_sits_adj$db_key <- paste0(player_all_sits_adj$player, 
+                                         player_all_sits_adj$game_date,
+                                         player_all_sits_adj$game_id,
+                                         player_all_sits_adj$season)
+    
+    player_stats$db_key <- paste0(player_stats$player, 
+                                  player_stats$game_date,
+                                  player_stats$game_id,
+                                  player_stats$season)
+    
+    player_stats_5v5$db_key <- paste0(player_stats_5v5$player, 
+                                      player_stats_5v5$game_date,
+                                      player_stats_5v5$game_id,
+                                      player_stats_5v5$season)
+    
+    team_adj_stats_5v5$db_key <- paste0(team_adj_stats_5v5$Team,
+                                        team_adj_stats_5v5$game_date,
+                                        team_adj_stats_5v5$game_id,
+                                        team_adj_stats_5v5$season)
+    
+    team_adj_stats_all_sits$db_key <- paste0(team_adj_stats_all_sits$Team,
+                                             team_adj_stats_all_sits$game_date,
+                                             team_adj_stats_all_sits$game_id,
+                                             team_adj_stats_all_sits$season)
+    
+    team_stats_5v5$db_key <- paste0(team_stats_5v5$Team,
+                                    team_stats_5v5$game_date,
+                                    team_stats_5v5$game_id,
+                                    team_stats_5v5$season)
+    
+    team_stats_all_sits$db_key <- paste0(team_stats_all_sits$Team,
+                                         team_stats_all_sits$game_date,
+                                         team_stats_all_sits$game_id,
+                                         team_stats_all_sits$season)
+    
+    
+    
+    ############################################################################
+    ##Creates dataframe for running xG graphs and then plots of all situations##
+    ##running xg, 5v5 running xg, xg locations, and player stats including xGF##
+    ##xGA, TOI, xGF% and xGF% 5v5.                                            ##
+    ############################################################################
+
+    #creates graph tiltes from team names and graphs running xG throughout the game
+    xg_graph_title <- paste(away_team, '@', home_team,
+                            'Expected Goals', Sys.Date()-1)
+
+    xg_5v5_graph_title <- paste(away_team, '@', home_team,
+                                '5v5 Expected Goals', Sys.Date()-1)
+
+    final_xg_score <- paste(away_team,
+                            format(team_stats_all_sits$xGF[team_stats_all_sits$Team==away_team],
+                                   digits = 3), home_team,
+                            format(team_stats_all_sits$xGF[team_stats_all_sits$Team==home_team],
+                                   digits = 3), 'Expected Goals')
+
+    final_xg_score_5v5 <- paste(away_team,
+                                format(team_stats_5v5$xGF[team_stats_5v5$Team==away_team],
+                                       digits = 3), home_team,
+                                format(team_stats_5v5$xGF[team_stats_5v5$Team==home_team],
+                                       digits = 3), 'Expected Goals')
+
+    final_xg_score_location <- paste(away_team, '(Right)',
+                            format(team_stats_all_sits$xGF[team_stats_all_sits$Team==away_team],
+                                   digits = 3), home_team, '(Left)',
+                            format(team_stats_all_sits$xGF[team_stats_all_sits$Team==home_team],
+                                   digits = 3), 'Expected Goals')
+
+
+    xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations',
+                                Sys.Date()-1)
+    #Creates tables of each team xG values and saves them to plots
+    away_xG_table <- away_adj_5v5 %>% select(player, TOI, CF, CA, CF_per, ixG, G,
+                                             xGF, xGA, xGF_per) %>%
+        arrange(desc(xGF_per))
+
+    home_xG_table <- home_adj_5v5 %>% select(player, TOI, CF, CA, CF_per, ixG, G,
+                                             xGF, xGA, xGF_per) %>%
+        arrange(desc(xGF_per))
+
+    away_table <- grid.arrange(tableGrob(away_xG_table),
+                               top = 'All stats 5v5 and score/venue adjusted')
+    home_table <- grid.arrange(tableGrob(home_xG_table),
+                               top = 'All stats 5v5 and score/venue adjusted')
+
+
+
+    #calculates the running sum for the step graphs for all situations and 5v5
+    pbp_df <- mutate(pbp_df, run_home_xg = cumsum(home_xG))
+    pbp_df <- mutate(pbp_df, run_away_xg = cumsum(away_xG))
+    pbp_df <- mutate(pbp_df, run_home_5v5_xg = cumsum(home_5v5_xG))
+    pbp_df <- mutate(pbp_df, run_away_5v5_xg = cumsum(away_5v5_xG))
+    
+    #create unique key for each row
+    pbp_df$db_key <- paste0(as.character(pbp_df$game_id),
+                            as.character(pbp_df$event_index))
+    
+    #create LD, MD, and HD dummy variables
+    pbp_df$HD <- ifelse(abs(pbp_df$coords_x)<87.95 & 
+                            abs(pbp_df$coords_x) > 67.95 &
+                            pbp_df$coords_y<8 & pbp_df$coords_y > -8, 1, 0) 
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x < 87.95) & 
+                            abs(pbp_df$coords_y > 67.95) & 
+                            abs(pbp_df$coords_y) < (-0.7*abs(pbp_df$coords_x) 
+                                                    + 69.565) &
+                            abs(pbp_df$coords_y) > 8, 
+                        1, 0)
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x < 67.95) & 
+                            abs(pbp_df$coords_x > 52.95) &
+                            pbp_df$coords_y < 22 & pbp_df$coords_y > -22, 
+                        1, pbp_df$MD)
+    
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x > 25) & 
+                            abs(pbp_df$coords_x < 52.95) &
+                            pbp_df$coords_y < 8 & pbp_df$coords_y > -8, 
+                        1, pbp_df$MD)
+    
+    pbp_df$LD <- ifelse(pbp_df$MD == 0 & pbp_df$HD == 0, 1, 0)
+
+    #turns running sums of home and away xG values into long data format inorder
+    #to step plot them
+    xg_graph_df <- gather(pbp_df, 'run_home_xg', 'run_away_xg', 'run_home_5v5_xg',
+                          'run_away_5v5_xg',
+                          key = 'team', value = 'running_xg')
+
+    #mirrors the y locations for the home and away teams on the offsides from where
+    #they will be graphed so the correct Ice Locations will be shown on the xG
+    #location graphs
+    xG_location_graph <- fenwick_pbp
+    xG_location_graph$coords_y <- ifelse(xG_location_graph$is_home == 1 &
+                                xG_location_graph$coords_x > 0,
+                                -xG_location_graph$coords_y,
+                                xG_location_graph$coords_y)
+    xG_location_graph$coords_y <- ifelse(xG_location_graph$is_home == 0 &
+                                xG_location_graph$coords_x < 0,
+                                -xG_location_graph$coords_y,
+                                xG_location_graph$coords_y)
+
+    #Plots running xG for teams in all situations
+    xG_plot_all_sits <- ggplot(aes(x = game_seconds/60, y = running_xg),
+                                data = subset(xg_graph_df,
+                                xg_graph_df$team %in% c('run_home_xg',
+                                'run_away_xg'))) +
+                        geom_step(aes(color = team)) +
+                        geom_point(aes(x = game_seconds/60, y = run_home_xg),
+                                data = subset(pbp_df,
+                                pbp_df$event_type == "GOAL" &
+                                pbp_df$event_team ==
+                                pbp_df$home_team), shape = 13) +
+                        geom_point(aes(x = game_seconds/60, y = run_away_xg),
+                                data = subset(pbp_df,
+                                pbp_df$event_type == 'GOAL' &
+                                pbp_df$event_team == pbp_df$away_team),
+                                shape = 13) +
+                        geom_vline(xintercept = c(20, 40, 60, 65)) +
+                        scale_color_manual(labels = c(away_team, home_team),
+                                values = c("red", "blue")) +
+                        xlab("Minutes") + ylab("Expected Goals") +
+                        labs(title = xg_graph_title, subtitle = final_xg_score,
+                            caption = 'by @Matt_Barlowe')
+
+    #5v5 Running xG graph
+    xG_plot_5v5  <- ggplot(aes(x = game_seconds/60, y = running_xg),
+                            data = subset(xg_graph_df,
+                            xg_graph_df$team %in% c('run_home_5v5_xg',
+                            'run_away_5v5_xg'))) +
+                    geom_step(aes(color = team)) +
+                    geom_point(aes(x = game_seconds/60, y = run_home_5v5_xg),
+                        data = subset(pbp_df, pbp_df$event_type == "GOAL" &
+                        pbp_df$event_team == pbp_df$home_team &
+                        pbp_df$home_skaters == 5 &
+                        pbp_df$away_skaters == 5), shape = 13) +
+                    geom_point(aes(x = game_seconds/60, y = run_away_5v5_xg),
+                        data = subset(pbp_df, pbp_df$event_type == 'GOAL' &
+                        pbp_df$event_team == pbp_df$away_team &
+                        pbp_df$home_skaters == 5 &
+                        pbp_df$away_skaters == 5), shape = 13) +
+                    geom_vline(xintercept = c(20, 40, 60, 65)) +
+                    scale_color_manual(labels = c(away_team, home_team),
+                        values = c("red", "blue")) +
+                    xlab("Minutes") + ylab("Expected Goals") +
+                    labs(title = xg_5v5_graph_title, subtitle = final_xg_score_5v5,
+                        caption = 'by @Matt_Barlowe')
+
+    #plots xG locations and values for each team
+    xg_locations_plot <- rink +
+        geom_point(aes(x = -abs(coords_x), y = coords_y, size = xG),
+            data = subset(fenwick_pbp, fenwick_pbp$event_team == home_team &
+            fenwick_pbp$event_type %in% c('SHOT', 'MISS')),
+            color = team_colors[home_team], shape = 0) +
+        geom_point(aes(x = -abs(coords_x), y = coords_y, size = xG,
+                       color = xG_location_graph$event_team), data =
+            subset(fenwick_pbp, fenwick_pbp$event_team == home_team &
+            fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[home_team],
+            shape = 15) +
+        geom_point(aes(x = abs(coords_x), y = coords_y, size = xG),
+            data = subset(fenwick_pbp, fenwick_pbp$event_team == away_team &
+            fenwick_pbp$event_type %in% c('SHOT', 'MISS')),
+            color = team_colors[away_team], shape = 0) +
+        geom_point(aes(x = abs(coords_x), y = coords_y, size = xG), data =
+            subset(fenwick_pbp, fenwick_pbp$event_team == away_team &
+            fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[away_team],
+            shape = 15) +
+        labs(title = xg_locations_title, subtitle = final_xg_score_location,
+             caption = 'by @Matt_Barlowe') 
+    
     ############################################################################
     ##Creating goalie stats and adding unique keys to all the data tables    ###
     ############################################################################
     #calculate goalie stats
     home_goalie_pbp <- subset(pbp_df, !is.na(pbp_df$home_goalie))
     away_goalie_pbp <- subset(pbp_df, !is.na(pbp_df$away_goalie))
-    home_goalie_pbp_5v5 <- pbp_df_5v5
-    away_goalie_pbp_5v5 <- pbp_df_5v5
+    home_goalie_pbp_5v5 <- subset(pbp_df, pbp_df$home_skaters == 5 &
+                                      pbp_df$away_skaters == 5)
+    away_goalie_pbp_5v5 <- subset(pbp_df, pbp_df$home_skaters == 5 &
+                                      pbp_df$away_skaters == 5)
     
     #calculate all situation goalie stats
     home_goalie_stats <- home_goalie_pbp %>%
@@ -5196,189 +5390,6 @@ for(game_number in games[[1]]){
     goalie_stats_5v5$db_key <- paste0(goalie_stats_5v5$goalie,
                                       goalie_stats_5v5$game_date,
                                       goalie_stats_5v5$game_id)
-    
-    player_5v5_adj$db_key <- paste0(player_5v5_adj$player, 
-                                    player_5v5_adj$game_date,
-                                    player_5v5_adj$game_id,
-                                    player_5v5_adj$season)
-    
-    player_all_sits_adj$db_key <- paste0(player_all_sits_adj$player, 
-                                         player_all_sits_adj$game_date,
-                                         player_all_sits_adj$game_id,
-                                         player_all_sits_adj$season)
-    
-    player_stats$db_key <- paste0(player_stats$player, 
-                                  player_stats$game_date,
-                                  player_stats$game_id,
-                                  player_stats$season)
-    
-    player_stats_5v5$db_key <- paste0(player_stats_5v5$player, 
-                                      player_stats_5v5$game_date,
-                                      player_stats_5v5$game_id,
-                                      player_stats_5v5$season)
-    
-    team_adj_stats_5v5$db_key <- paste0(team_adj_stats_5v5$Team,
-                                        team_adj_stats_5v5$game_date,
-                                        team_adj_stats_5v5$game_id,
-                                        team_adj_stats_5v5$season)
-    
-    team_adj_stats_all_sits$db_key <- paste0(team_adj_stats_all_sits$Team,
-                                             team_adj_stats_all_sits$game_date,
-                                             team_adj_stats_all_sits$game_id,
-                                             team_adj_stats_all_sits$season)
-    
-    team_stats_5v5$db_key <- paste0(team_stats_5v5$Team,
-                                    team_stats_5v5$game_date,
-                                    team_stats_5v5$game_id,
-                                    team_stats_5v5$season)
-    
-    team_stats_all_sits$db_key <- paste0(team_stats_all_sits$Team,
-                                         team_stats_all_sits$game_date,
-                                         team_stats_all_sits$game_id,
-                                         team_stats_all_sits$season)
-    
-    ############################################################################
-    ##Creates dataframe for running xG graphs and then plots of all situations##
-    ##running xg, 5v5 running xg, xg locations, and player stats including xGF##
-    ##xGA, TOI, xGF% and xGF% 5v5.                                            ##
-    ############################################################################
-
-    #creates graph tiltes from team names and graphs running xG throughout the game
-    xg_graph_title <- paste(away_team, '@', home_team,
-                            'Expected Goals', Sys.Date()-1)
-
-    xg_5v5_graph_title <- paste(away_team, '@', home_team,
-                                '5v5 Expected Goals', Sys.Date()-1)
-
-    final_xg_score <- paste(away_team,
-                            format(team_stats_all_sits$xGF[team_stats_all_sits$Team==away_team],
-                                   digits = 3), home_team,
-                            format(team_stats_all_sits$xGF[team_stats_all_sits$Team==home_team],
-                                   digits = 3), 'Expected Goals')
-
-    final_xg_score_5v5 <- paste(away_team,
-                                format(team_stats_5v5$xGF[team_stats_5v5$Team==away_team],
-                                       digits = 3), home_team,
-                                format(team_stats_5v5$xGF[team_stats_5v5$Team==home_team],
-                                       digits = 3), 'Expected Goals')
-
-    final_xg_score_location <- paste(away_team, '(Right)',
-                            format(team_stats_all_sits$xGF[team_stats_all_sits$Team==away_team],
-                                   digits = 3), home_team, '(Left)',
-                            format(team_stats_all_sits$xGF[team_stats_all_sits$Team==home_team],
-                                   digits = 3), 'Expected Goals')
-
-
-    xg_locations_title <- paste(away_team, '@', home_team, 'xG Locations',
-                                Sys.Date()-1)
-    #Creates tables of each team xG values and saves them to plots
-    away_xG_table <- away_adj_5v5 %>% select(player, TOI, CF, CA, CF_per, ixG, G,
-                                             xGF, xGA, xGF_per) %>%
-        arrange(desc(xGF_per))
-
-    home_xG_table <- home_adj_5v5 %>% select(player, TOI, CF, CA, CF_per, ixG, G,
-                                             xGF, xGA, xGF_per) %>%
-        arrange(desc(xGF_per))
-
-    away_table <- grid.arrange(tableGrob(away_xG_table),
-                               top = 'All stats 5v5 and score/venue adjusted')
-    home_table <- grid.arrange(tableGrob(home_xG_table),
-                               top = 'All stats 5v5 and score/venue adjusted')
-
-
-
-    #calculates the running sum for the step graphs for all situations and 5v5
-    pbp_df <- mutate(pbp_df, run_home_xg = cumsum(home_xG))
-    pbp_df <- mutate(pbp_df, run_away_xg = cumsum(away_xG))
-    pbp_df <- mutate(pbp_df, run_home_5v5_xg = cumsum(home_5v5_xG))
-    pbp_df <- mutate(pbp_df, run_away_5v5_xg = cumsum(away_5v5_xG))
-
-    #turns running sums of home and away xG values into long data format inorder
-    #to step plot them
-    xg_graph_df <- gather(pbp_df, 'run_home_xg', 'run_away_xg', 'run_home_5v5_xg',
-                          'run_away_5v5_xg',
-                          key = 'team', value = 'running_xg')
-
-    #mirrors the y locations for the home and away teams on the offsides from where
-    #they will be graphed so the correct Ice Locations will be shown on the xG
-    #location graphs
-    xG_location_graph <- fenwick_pbp
-    xG_location_graph$coords_y <- ifelse(xG_location_graph$is_home == 1 &
-                                xG_location_graph$coords_x > 0,
-                                -xG_location_graph$coords_y,
-                                xG_location_graph$coords_y)
-    xG_location_graph$coords_y <- ifelse(xG_location_graph$is_home == 0 &
-                                xG_location_graph$coords_x < 0,
-                                -xG_location_graph$coords_y,
-                                xG_location_graph$coords_y)
-
-    #Plots running xG for teams in all situations
-    xG_plot_all_sits <- ggplot(aes(x = game_seconds/60, y = running_xg),
-                                data = subset(xg_graph_df,
-                                xg_graph_df$team %in% c('run_home_xg',
-                                'run_away_xg'))) +
-                        geom_step(aes(color = team)) +
-                        geom_point(aes(x = game_seconds/60, y = run_home_xg),
-                                data = subset(pbp_df,
-                                pbp_df$event_type == "GOAL" &
-                                pbp_df$event_team ==
-                                pbp_df$home_team), shape = 13) +
-                        geom_point(aes(x = game_seconds/60, y = run_away_xg),
-                                data = subset(pbp_df,
-                                pbp_df$event_type == 'GOAL' &
-                                pbp_df$event_team == pbp_df$away_team),
-                                shape = 13) +
-                        geom_vline(xintercept = c(20, 40, 60, 65)) +
-                        scale_color_manual(labels = c(away_team, home_team),
-                                values = c("red", "blue")) +
-                        xlab("Minutes") + ylab("Expected Goals") +
-                        labs(title = xg_graph_title, subtitle = final_xg_score,
-                            caption = 'by @Matt_Barlowe')
-
-    #5v5 Running xG graph
-    xG_plot_5v5  <- ggplot(aes(x = game_seconds/60, y = running_xg),
-                            data = subset(xg_graph_df,
-                            xg_graph_df$team %in% c('run_home_5v5_xg',
-                            'run_away_5v5_xg'))) +
-                    geom_step(aes(color = team)) +
-                    geom_point(aes(x = game_seconds/60, y = run_home_5v5_xg),
-                        data = subset(pbp_df, pbp_df$event_type == "GOAL" &
-                        pbp_df$event_team == pbp_df$home_team &
-                        pbp_df$home_skaters == 5 &
-                        pbp_df$away_skaters == 5), shape = 13) +
-                    geom_point(aes(x = game_seconds/60, y = run_away_5v5_xg),
-                        data = subset(pbp_df, pbp_df$event_type == 'GOAL' &
-                        pbp_df$event_team == pbp_df$away_team &
-                        pbp_df$home_skaters == 5 &
-                        pbp_df$away_skaters == 5), shape = 13) +
-                    geom_vline(xintercept = c(20, 40, 60, 65)) +
-                    scale_color_manual(labels = c(away_team, home_team),
-                        values = c("red", "blue")) +
-                    xlab("Minutes") + ylab("Expected Goals") +
-                    labs(title = xg_5v5_graph_title, subtitle = final_xg_score_5v5,
-                        caption = 'by @Matt_Barlowe')
-
-    #plots xG locations and values for each team
-    xg_locations_plot <- rink +
-        geom_point(aes(x = -abs(coords_x), y = coords_y, size = xG),
-            data = subset(fenwick_pbp, fenwick_pbp$event_team == home_team &
-            fenwick_pbp$event_type %in% c('SHOT', 'MISS')),
-            color = team_colors[home_team], shape = 0) +
-        geom_point(aes(x = -abs(coords_x), y = coords_y, size = xG,
-                       color = xG_location_graph$event_team), data =
-            subset(fenwick_pbp, fenwick_pbp$event_team == home_team &
-            fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[home_team],
-            shape = 15) +
-        geom_point(aes(x = abs(coords_x), y = coords_y, size = xG),
-            data = subset(fenwick_pbp, fenwick_pbp$event_team == away_team &
-            fenwick_pbp$event_type %in% c('SHOT', 'MISS')),
-            color = team_colors[away_team], shape = 0) +
-        geom_point(aes(x = abs(coords_x), y = coords_y, size = xG), data =
-            subset(fenwick_pbp, fenwick_pbp$event_team == away_team &
-            fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[away_team],
-            shape = 15) +
-        labs(title = xg_locations_title, subtitle = final_xg_score_location,
-             caption = 'by @Matt_Barlowe') 
 
     ############################################################################
     ##Saves all graphs to a folder designated by game number and adds the full##
@@ -5418,7 +5429,7 @@ for(game_number in games[[1]]){
     write_delim(team_stats_all_sits, paste(toString(game_number),
                                           'teamstats'), delim = '|')
     write_delim(goalie_stats_all_sits, 'goaliestats', delim = '|')
-    write_delim(goalie_stats_5v5, 'goaliestats5v5', delim = '|')d
+    write_delim(goalie_stats_5v5, 'goaliestats5v5', delim = '|')
 
 
 
@@ -5454,12 +5465,71 @@ fileConn <- file('~/graphautomation/dailygames.txt')
 writeLines(daily_games, fileConn)
 close(fileConn)
 
+daily_adj_player_stats_5v5$season <- first(pbp_df$season)
+daily_adjusted_player_stats$season <- first(pbp_df$season)
+daily_player_stats$season <- first(pbp_df$season)
+daily_player_stats_5v5$season <- first(pbp_df$season)
+
+daily_adj_player_stats_5v5$session <- first(pbp_df$session)
+daily_adjusted_player_stats$session <- first(pbp_df$session)
+daily_player_stats$session <- first(pbp_df$session)
+daily_player_stats_5v5$session <- first(pbp_df$session)
+#create keys for daily stat files
+daily_adj_player_stats_5v5$db_key <- paste0(daily_adj_player_stats_5v5$player, 
+                                daily_adj_player_stats_5v5$game_date,
+                                daily_adj_player_stats_5v5$game_id,
+                                daily_adj_player_stats_5v5$season)
+
+daily_adj_team_stats_5v5$db_key <- paste0(daily_adj_team_stats_5v5$Team, 
+                                     daily_adj_team_stats_5v5$game_date,
+                                     daily_adj_team_stats_5v5$game_id,
+                                     daily_adj_team_stats_5v5$season)
+
+daily_adjusted_player_stats$db_key <- paste0(daily_adjusted_player_stats$player, 
+                                             daily_adjusted_player_stats$game_date,
+                                             daily_adjusted_player_stats$game_id,
+                                             daily_adjusted_player_stats$season)
+
+daily_goalie_stats$db_key <- paste0(daily_goalie_stats$goalie, 
+                                    daily_goalie_stats$game_date,
+                                    daily_goalie_stats$game_id,
+                                    daily_goalie_stats$season)
+
+daily_goalie_stats_5v5$db_key <- paste0(daily_goalie_stats_5v5$goalie,
+                                        daily_goalie_stats_5v5$game_date,
+                                        daily_goalie_stats_5v5$game_id,
+                                        daily_goalie_stats_5v5$season)
+
+daily_player_stats$db_key <- paste0(daily_player_stats$player,
+                                    daily_player_stats$game_date,
+                                    daily_player_stats$game_id,
+                                    daily_player_stats$season)
+
+daily_player_stats_5v5$db_key <- paste0(daily_player_stats_5v5$player,
+                                        daily_player_stats_5v5$game_date,
+                                        daily_player_stats_5v5$game_id,
+                                        daily_player_stats_5v5$season)
+
+daily_team_adjusted_stats$db_key <- paste0(daily_team_adjusted_stats$Team,
+                                           daily_team_adjusted_stats$game_date,
+                                           daily_team_adjusted_stats$game_id,
+                                           daily_team_adjusted_stats$season)
+
+daily_team_stats$db_key <- paste0(daily_team_stats$Team,
+                                  daily_team_stats$game_date,
+                                  daily_team_stats$game_id,
+                                  daily_team_stats$season)
+
+daily_team_stats_5v5$db_key <- paste0(daily_team_stats_5v5$Team,
+                                  daily_team_stats_5v5$game_date,
+                                  daily_team_stats_5v5$game_id,
+                                  daily_team_stats_5v5$season)
 #write all the daily compiled stats to | delim files
 dir.create(paste0('~/HockeyStuff/xGGameBreakdowns/dailycompiledstats/', as.character(date)))
 setwd(paste0('~/HockeyStuff/xGGameBreakdowns/dailycompiledstats/', as.character(date)))
 write_delim(daily_adj_player_stats_5v5, 'dailyplayerstatsadj5v5', delim = '|')
 write_delim(daily_player_stats_5v5, 'dailyplayerstats5v5', delim = '|')
-write_delim(daily_player_stats, 'dailyplayerstat', delim = '|')
+write_delim(daily_player_stats, 'dailyplayerstats', delim = '|')
 write_delim(daily_adjusted_player_stats, 'dailyplayerstatsadj', delim = '|')
 write_delim(daily_team_adjusted_stats, 'dailyteamstatsadj', delim = '|')
 write_delim(daily_team_stats, 'dailyteamstats', delim = '|')

@@ -19,8 +19,8 @@ is_home <- function(dataframe){
     return(dataframe)
 }
 
-games <- c(20001:21230)
-seasons <- c(2015, 2016, 2017)
+games <- c(2031)
+seasons <- c(2016)
 shots <- c("SHOT", "GOAL")
 
 #Loops through game numbers in the daily_games vector and scrapes the data
@@ -28,7 +28,7 @@ shots <- c("SHOT", "GOAL")
 for (season in seasons){
     for(game_number in games){
         
-        pbp_df <- read_delim(paste0('~/HockeyStuff/xGGameBreakdowns/',season, 
+        pbp_df <- read_delim(paste0('~/Desktop/NHLdatabasebackups/',season, 
                                     '/', game_number, '/',
                                     game_number), delim = '|')
     
