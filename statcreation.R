@@ -19,8 +19,8 @@ is_home <- function(dataframe){
     return(dataframe)
 }
 
-games <- c(2031)
-seasons <- c(2016)
+games <- c(20001)
+seasons <- c(2015)
 shots <- c("SHOT", "GOAL")
 
 #Loops through game numbers in the daily_games vector and scrapes the data
@@ -28,7 +28,7 @@ shots <- c("SHOT", "GOAL")
 for (season in seasons){
     for(game_number in games){
         
-        pbp_df <- read_delim(paste0('~/Desktop/NHLdatabasebackups/',season, 
+        pbp_df <- read_delim(paste0('~/HockeyStuff/xGGameBreakdowns/',season, 
                                     '/', game_number, '/',
                                     game_number), delim = '|')
     
@@ -1369,12 +1369,12 @@ for (season in seasons){
         away_goalie_pbp_5v5 <- pbp_df_5v5
         
         #calculate all situation goalie stats
-        home_goalie_stats <- home_goalie_pbp %>%
-            summarise(goalie = first(home_goalie), 
-                      game_id = first(game_id),
-                      game_date = first(game_date),
-                      season = first(season),
-                      team = first(home_team),
+        home_goalie_stats <- home_goalie_pbp %>% group_by(home_goalie)
+            summarise(
+                      game_id = first(home_goalie_pbp$game_id),
+                      game_date = first(home_goalie_pbp$game_date),
+                      season = first(home_goalie_pbp$season),
+                      team = first(home_goalie_pbp$home_team),
                       TOI = sum(event_length)/60, CF = sum(home_corsi),
                       CA = sum(away_corsi), FA = sum(away_corsi), xGA = sum(away_xG),
                       SA = sum(ifelse(event_team == away_team & 
@@ -1414,12 +1414,12 @@ for (season in seasons){
                    mdsv_percent = round(1-(MDGA/MDA),3),
                    ldsv_percent = round(1-(LDGA/LDA),3))
         
-        away_goalie_stats <- away_goalie_pbp %>%
-            summarise(goalie = first(away_goalie), 
-                      game_id = first(game_id),
-                      game_date = first(game_date),
-                      season = first(season),
-                      team = first(away_team),
+        away_goalie_stats <- away_goalie_pbp %>% group_by(away_goalie) %>%
+            summarise( 
+                      game_id = first(home_goalie_pbp$game_id),
+                      game_date = first(home_goalie_pbp$game_date),
+                      season = first(home_goalie_pbp$season),
+                      team = first(home_goalie_pbp$away_team),
                       TOI = sum(event_length)/60, CF = sum(away_corsi),
                       CA = sum(home_corsi), FA = sum(home_corsi), xGA = sum(home_xG),
                       SA = sum(ifelse(event_team == home_team & 
@@ -1462,12 +1462,12 @@ for (season in seasons){
         goalie_stats_all_sits <- rbind(home_goalie_stats, away_goalie_stats)
         
         #calculate goalie 5v5 stats
-        home_goalie_stats_5v5 <- home_goalie_pbp_5v5 %>%
-            summarise(goalie = first(home_goalie), 
-                      game_id = first(game_id),
-                      game_date = first(game_date),
-                      season = first(season),
-                      team = first(home_team),
+        home_goalie_stats_5v5 <- home_goalie_pbp_5v5 %>% group_by(home_goalie) %>%
+            summarise( 
+                      game_id = first(home_goalie_pbp$game_id),
+                      game_date = first(home_goalie_pbp$game_date),
+                      season = first(home_goalie_pbp$season),
+                      team = first(home_goalie_pbp$home_team),
                       TOI = sum(event_length)/60, CF = sum(home_corsi),
                       CA = sum(away_corsi), FA = sum(away_corsi), xGA = sum(away_xG),
                       SA = sum(ifelse(event_team == away_team & 
@@ -1507,12 +1507,12 @@ for (season in seasons){
                    mdsv_percent = round(1-(MDGA/MDA),3),
                    ldsv_percent = round(1-(LDGA/LDA),3))
         
-        away_goalie_stats_5v5 <- away_goalie_pbp_5v5 %>%
-            summarise(goalie = first(away_goalie), 
-                      game_id = first(game_id),
-                      game_date = first(game_date),
-                      season = first(season),
-                      team = first(away_team),
+        away_goalie_stats_5v5 <- away_goalie_pbp_5v5 %>% group_by(away_goalie) %>%
+            summarise( 
+                      game_id = first(home_goalie_pbp$game_id),
+                      game_date = first(home_goalie_pbp$game_date),
+                      season = first(home_goalie_pbp$season),
+                      team = first(home_goalie_pbp$away_team),
                       TOI = sum(event_length)/60, CF = sum(away_corsi),
                       CA = sum(home_corsi), FA = sum(home_corsi), xGA = sum(home_xG),
                       SA = sum(ifelse(event_team == home_team & 
