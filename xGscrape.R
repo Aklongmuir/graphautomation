@@ -5381,6 +5381,9 @@ for(game_number in games[[1]]){
     goalie_stats_all_sits <- rbind(home_goalie_stats, away_goalie_stats)
     goalie_stats_5v5 <- rbind(home_goalie_stats_5v5, away_goalie_stats_5v5)
     
+    goalie_stats_5v5 <- goalie_stats_5v5[!is.na(goalie_stats_5v5$goalie),]
+    goalie_stats_all_sits <- goalie_stats_all_sits[!is.na(goalie_stats_all_sits$goalie),]
+    
     daily_goalie_stats <- rbind(daily_goalie_stats, goalie_stats_all_sits)
     daily_goalie_stats_5v5 <- rbind(daily_goalie_stats_5v5, goalie_stats_5v5)
     
