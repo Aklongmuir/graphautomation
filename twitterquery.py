@@ -348,6 +348,7 @@ def graph_query_creation(query_list):
     conn = engine.connect()
     metadata = MetaData()
     metadata.reflect(bind=engine)
+    average = 50
 
     if len(query_list) == 4:
         database = metadata.tables[query_list[3]]
@@ -367,6 +368,14 @@ def graph_query_creation(query_list):
             average = conn.execute(select([func.avg(database.c[query_list[1]])]).
                                    where(database.c.season ==
                                          format_season(query_list[-2])))
+            average = list(average)
+            print(average)
+            average = '{}'.format(str(average).replace('(', '').replace(',', '')
+                                  .replace(')', '').replace("'", '')
+                                  .replace('Decimal', '').replace('[', '').
+                                  replace(']', ''))
+            print(average)
+            average = float(average)
 
     elif len(query_list) == 5:
         database = metadata.tables[query_list[-1]]
@@ -388,15 +397,15 @@ def graph_query_creation(query_list):
             average = conn.execute(select([func.avg(database.c[query_list[2]])]).
                                    where(database.c.season ==
                                          format_season(query_list[-2])))
+            average = list(average)
+            print(average)
+            average = '{}'.format(str(average).replace('(', '').replace(',', '')
+                                  .replace(')', '').replace("'", '')
+                                  .replace('Decimal', '').replace('[', '').
+                                  replace(']', ''))
+            print(average)
+            average = float(average)
 
-    average = list(average)
-    print(average)
-    average = '{}'.format(str(average).replace('(', '').replace(',', '')
-                          .replace(')', '').replace("'", '')
-                          .replace('Decimal', '').replace('[', '').
-                          replace(']', ''))
-    print(average)
-    average = float(average)
     query_df = pd.read_sql_query(sql_query, conn)
     query_df = query_df.sort_values('game_date')
 
