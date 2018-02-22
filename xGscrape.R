@@ -11,7 +11,6 @@ Sys.setenv(TZ='EST')
 
 
 
-
 ### DRYSCRAPE ###
 # Last edit: Manny (2017-07-02)
 
@@ -3110,6 +3109,212 @@ library(dplyr)
 library(grid)
 library(gridExtra)
 library(stringr)
+################################################################################
+##This code written by Prashanth Iyer who can be found on twitter          #####
+##@iyer_prashanth                                                          #####
+################################################################################
+fun.draw_rink <- function() {
+    
+    
+    
+    xseq <- seq(-4, 4, length = 100)
+    theta1 <- seq(0, 2 * pi, length = 300)
+    theta <- seq(0, 2 * pi, length = 300)
+    dd <- (5 + 7 / 12) / 2
+    
+    ## Blank NHL Rink
+    
+    rink <- ggplot(data = data.frame(x = 1, y = 1), aes(x, y)) + 
+        
+        geom_path(data = data.frame(
+            x = c(15, 87 + 13 * sin(seq(0, pi / 2, length = 20)), 
+                  87 + 13 * sin(seq(pi / 2, 0, length = 20)), 15), 
+            y = c(-42.5, -42.5 + 15 - 15 * cos(seq(0, pi / 2, length = 20)), 
+                  42.5 - 15 + 15 * cos(seq(pi / 2, 0, length = 20)), 42.5))) + 
+        geom_path(data = data.frame(
+            x = c(15, -87 - 13 * sin(seq(0, pi / 2, length = 20)), 
+                  -87 - 13 * sin(seq(pi / 2, 0, length = 20)), 15), 
+            y = c(-42.5, -42.5 + 15 - 15 * cos(seq(0, pi / 2, length = 20)), 
+                  42.5 - 15 + 15 * cos(seq(pi / 2, 0, length = 20)), 42.5))) + 
+        ## Goal Lines
+        geom_path(data = data.frame(x = c(89),
+                                    y = c(42.5 - 15 + sqrt(15^2 - (15 - 11)^2), 
+                                          -(42.5 - 15 + sqrt(15^2 - (15 - 11)^2)))), 
+                  color = 'red') + 
+        geom_path(data = data.frame(x = c(-89), 
+                                    y = c(42.5 - 15 + sqrt(15^2 - (15 - 11)^2), 
+                                          -(42.5 - 15 + sqrt(15^2 - (15 - 11)^2)))), 
+                  color = 'red') +
+        ## Nets
+        geom_path(data = data.frame(x = c(90, 92, 92, 90)), y = c(-3, -3, 3, 3)) + 
+        geom_path(data = data.frame(x = c(-90, -92, -92, -90), y = c(-3,-3, 3, 3))) +
+        
+        ## Restricted Area
+        geom_segment(aes(x = 89, y = -11, xend = 100, yend = -14), color = 'red') + 
+        geom_segment(aes(x = 89, y = 11, xend = 100, yend = 14), color = 'red') + 
+        geom_segment(aes(x = -89, y = -11, xend = -100, yend = -14), color = 'red') + 
+        geom_segment(aes(x = -89, y = 11, xend =-100, yend = 14), color = 'red') +
+        
+        ## Red Line (Center Ice)
+        geom_segment(aes(x = 0, y = -42.5, xend = 0, yend = 42.5), color = 'red', size = 1) +
+        
+        ## Blue Lines
+        geom_segment(aes(x = 25, y = -42.5, xend = 25,  yend = 42.5), color = 'blue', size = 1) + 
+        geom_segment(aes(x = -25, y = -42.5, xend = -25,  yend = 42.5), color = 'blue', size = 1) +
+        
+        ## Crease
+        geom_polygon(data = data.frame(x = 1 * c(89, 83+xseq^2 / 4^2 * 1.5, 89),
+                                       y = c(-4, xseq, 4)), 
+                     color = 'red', fill = 'deepskyblue2') + 
+        geom_polygon(data = data.frame(x = -1 * c(89, 83 + xseq^2 / 4^2 * 1.5, 89),
+                                       y = c(-4, xseq, 4)), 
+                     color = 'red', fill = 'deepskyblue2') +
+        
+        ## Center Ice Circle
+        geom_path(data = data.frame(x = 15 * sin(theta1)), 
+                  y = 15 * cos(theta1), color = 'deepskyblue2') +
+        
+        ## Faceoff Dots
+        geom_polygon(data = data.frame(y = 22 + 1 * cos(theta), 
+                                       x = 20 + 1 * sin(theta)), 
+                     color = "red", fill = "red") + 
+        geom_polygon(data = data.frame(y = 22 + 1 * cos(theta), 
+                                       x = -20 + 1 * sin(theta)), 
+                     color = "red", fill = 'red') + 
+        geom_polygon(data = data.frame(y = -22 + 1 * cos(theta), 
+                                       x = -20 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = -22 + 1 * cos(theta), 
+                                       x = 20 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = 22 + 1 * cos(theta), 
+                                       x = -69 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = 22 + 1 * cos(theta), 
+                                       x = 69 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = -22 + 1 * cos(theta), 
+                                       x = -69 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') + 
+        geom_polygon(data = data.frame(y = -22 + 1 * cos(theta), 
+                                       x = 69 + 1 * sin(theta)), 
+                     color = 'red', fill = 'red') +
+        
+        ## Faceoff Circles
+        geom_segment(aes(y = 22 - 0.75, x = 69 - 2, 
+                         yend = 22 - 0.75, xend = 69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = 69 - 2, 
+                         yend = 22 + 0.75, xend = 69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = 69 + 2, 
+                         yend = 22 + 0.75, xend = 69 + 6), color= 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = 69 - 2, 
+                         yend = 22 - 0.75, xend = 69 - 6), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = 69 - 2, 
+                         yend = -22 + 0.75, xend = 69 - 6), color= 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = 69 + 2, 
+                         yend = -22 + 0.75, xend = 69 + 6), color= 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = 69 - 2, 
+                         yend = -22 - 0.75, xend = 69 - 6), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = 69 + 2, 
+                         yend = -22 - 0.75, xend = 69 + 6), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = 69 + 2, 
+                         yend = 22 - 0.75, xend = 69 + 6), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = -69 - 2, 
+                         yend = 22 + 0.75, xend = -69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = -69 - 2, 
+                         yend = 22 - 0.75, xend = -69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = -69 + 2, 
+                         yend = 22 + 0.75, xend = -69 + 6), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = -69 - 2, 
+                         yend = -22 + 0.75, xend = -69 - 6), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = -69 + 2, 
+                         yend = 22 - 0.75, xend = -69 + 6), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = -69 + 2, 
+                         yend = -22 + 0.75, xend = -69 + 6), color= 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = -69 - 2, 
+                         yend = -22 - 0.75, xend = -69 - 6), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = -69 + 2, 
+                         yend = -22 - 0.75, xend = -69 + 6), color = 'red') + 
+        geom_segment(aes(y = 22 - 15, x = 69 - dd, 
+                         yend = 22 - 17, xend = 69 - dd), color = 'red') + 
+        geom_segment(aes(y = 22 - 15, x = 69 + dd, 
+                         yend = 22 - 17, xend = 69 + dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 15, x = 69 + dd, 
+                         yend = 22+17, xend = 69 + dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 15, x = 69 - dd, 
+                         yend = 22 + 17, xend = 69 - dd), color = 'red') + 
+        geom_segment(aes(y = -22 + 15, x = 69 - dd, 
+                         yend = -22 + 17, xend = 69 - dd), color = 'red') + 
+        geom_segment(aes(y = -22 + 15, x = 69 + dd, 
+                         yend = -22 + 17, xend = 69 + dd), color = 'red') + 
+        geom_segment(aes(y = -22 - 15, x = 69 - dd, 
+                         yend = -22 - 17, xend = 69 - dd), color= 'red') + 
+        geom_segment(aes(y = -22 - 15, x = 69 + dd, 
+                         yend = -22 - 17, xend = 69 + dd), color = 'red') + 
+        geom_segment(aes(y = -22 + 15, x = -69 + dd, 
+                         yend = -22 + 17, xend = -69 + dd), color = 'red') + 
+        geom_segment(aes(y = -22 - 15, x = -69 - dd, 
+                         yend = -22 - 17, xend = -69 - dd), color = 'red') + 
+        geom_segment(aes(y = -22 - 15, x = -69 + dd, 
+                         yend = -22 - 17, xend = -69 + dd), color = 'red') + 
+        geom_segment(aes(y = -22 + 15, x = -69 - dd, 
+                         yend = -22 + 17, xend = -69 - dd), color = 'red') + 
+        geom_segment(aes(y = 22 - 15, x = -69 + dd, 
+                         yend = 22 - 17, xend = -69 + dd), color = 'red') + 
+        geom_segment(aes(y = 22 - 15, x = -69 - dd, 
+                         yend = 22 - 17, xend = -69 - dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 15, x = -69 - dd, 
+                         yend = 22 + 17, xend = -69 - dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 15, x = -69 + dd, 
+                         yend = 22 + 17, xend = -69 + dd), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = 69 + 2, 
+                         yend = 22 + 3.75, xend = 69 + 2), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = 69 - 2, 
+                         yend = 22 + 3.75, xend = 69 - 2), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = 69 + 2, 
+                         yend = 22 - 3.75, xend = 69 + 2), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = 69 - 2, 
+                         yend = 22 - 3.75, xend = 69 - 2), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = -69 + 2, 
+                         yend = 22 + 3.75, xend = -69 + 2), color = 'red') + 
+        geom_segment(aes(y = 22 + 0.75, x = -69 - 2, 
+                         yend = 22 + 3.75, xend = -69 - 2), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = -69 + 2, 
+                         yend = 22 - 3.75, xend = -69 + 2), color = 'red') + 
+        geom_segment(aes(y = 22 - 0.75, x = -69 - 2, 
+                         yend = 22 - 3.75, xend = -69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = -69 + 2, 
+                         yend = -22 - 3.75, xend = -69 + 2), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = -69 - 2, 
+                         yend = -22 - 3.75, xend = -69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = -69 + 2, 
+                         yend = -22 + 3.75, xend = -69 + 2), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = -69 - 2, 
+                         yend = -22 + 3.75, xend = -69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = 69 + 2, 
+                         yend = -22 + 3.75, xend = 69 + 2), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = 69 - 2, 
+                         yend = -22 - 3.75, xend = 69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 + 0.75, x = 69 - 2, 
+                         yend = -22 + 3.75, xend = 69 - 2), color = 'red') + 
+        geom_segment(aes(y = -22 - 0.75, x = 69 + 2, 
+                         yend = -22 - 3.75, xend = 69 + 2), color = 'red') + 
+        geom_path(data = data.frame(y = 22 + 15 * cos(theta), 
+                                    x = 69 + 15 * sin(theta)), color = 'red') + 
+        geom_path(data = data.frame(y = 22 + 15 * cos(theta), 
+                                    x = -69 + 15 * sin(theta)), color = 'red') + 
+        geom_path(data = data.frame(y = -22 + 15 * cos(theta), 
+                                    x = -69 + 15 * sin(theta)), color = 'red') + 
+        geom_path(data = data.frame(y = -22 + 15 * cos(theta), 
+                                    x = 69 + 15 * sin(theta)), color = 'red') + 
+        
+        theme_void()
+    
+    
+    
+}
+
+rink <- fun.draw_rink() + coord_fixed()
 
 #stores yesterday's date in a variable
 date <- Sys.Date()-1
@@ -3128,6 +3333,8 @@ daily_player_stats <- NULL
 daily_team_stats <- NULL
 daily_player_stats_5v5 <- NULL
 daily_team_stats_5v5 <- NULL
+daily_goalie_stats <- NULL
+daily_goalie_stats_5v5 <- NULL
 unscraped_games <-c()
 
 #assigns colors to each team for graphing purposes
@@ -3309,6 +3516,7 @@ for(game_number in games[[1]]){
                                    pbp_df$home_team == 'NYI', '5EBASTIAN.AHO',
                                pbp_df$home_on_6)
     
+    
 
     ############################################################################
     ##Creating the model features including distance, angle, time diff between##
@@ -3363,6 +3571,9 @@ for(game_number in games[[1]]){
     pbp_df$shooter_strength <- ifelse(pbp_df$game_strength_state %in%
                                           c('Ev0', '0vE'),
                                             'PS', pbp_df$shooter_strength)
+    
+    pbp_df$coords_x[is.na(pbp_df$coords_x)] <- 0
+    pbp_df$coords_y[is.na(pbp_df$coords_y)] <- 0
     ############################################################################
     ##Calculates xG values for each event from the fenwick events subset of   ##
     ## the pbp_df and then merges it back to the pbp_df.                      ##
@@ -4755,6 +4966,51 @@ for(game_number in games[[1]]){
     #add to the daily team dataframe to write to text file for sql insertion
     daily_team_stats_5v5 <- rbind(team_stats_5v5,
                                       daily_team_stats_5v5)
+    
+    
+    
+    player_5v5_adj$db_key <- paste0(player_5v5_adj$player, 
+                                    player_5v5_adj$game_date,
+                                    player_5v5_adj$game_id,
+                                    player_5v5_adj$season)
+    
+    player_all_sits_adj$db_key <- paste0(player_all_sits_adj$player, 
+                                         player_all_sits_adj$game_date,
+                                         player_all_sits_adj$game_id,
+                                         player_all_sits_adj$season)
+    
+    player_stats$db_key <- paste0(player_stats$player, 
+                                  player_stats$game_date,
+                                  player_stats$game_id,
+                                  player_stats$season)
+    
+    player_stats_5v5$db_key <- paste0(player_stats_5v5$player, 
+                                      player_stats_5v5$game_date,
+                                      player_stats_5v5$game_id,
+                                      player_stats_5v5$season)
+    
+    team_adj_stats_5v5$db_key <- paste0(team_adj_stats_5v5$Team,
+                                        team_adj_stats_5v5$game_date,
+                                        team_adj_stats_5v5$game_id,
+                                        team_adj_stats_5v5$season)
+    
+    team_adj_stats_all_sits$db_key <- paste0(team_adj_stats_all_sits$Team,
+                                             team_adj_stats_all_sits$game_date,
+                                             team_adj_stats_all_sits$game_id,
+                                             team_adj_stats_all_sits$season)
+    
+    team_stats_5v5$db_key <- paste0(team_stats_5v5$Team,
+                                    team_stats_5v5$game_date,
+                                    team_stats_5v5$game_id,
+                                    team_stats_5v5$season)
+    
+    team_stats_all_sits$db_key <- paste0(team_stats_all_sits$Team,
+                                         team_stats_all_sits$game_date,
+                                         team_stats_all_sits$game_id,
+                                         team_stats_all_sits$season)
+    
+    
+    
     ############################################################################
     ##Creates dataframe for running xG graphs and then plots of all situations##
     ##running xg, 5v5 running xg, xg locations, and player stats including xGF##
@@ -4810,6 +5066,32 @@ for(game_number in games[[1]]){
     pbp_df <- mutate(pbp_df, run_away_xg = cumsum(away_xG))
     pbp_df <- mutate(pbp_df, run_home_5v5_xg = cumsum(home_5v5_xG))
     pbp_df <- mutate(pbp_df, run_away_5v5_xg = cumsum(away_5v5_xG))
+    
+    #create unique key for each row
+    pbp_df$db_key <- paste0(as.character(pbp_df$game_id),
+                            as.character(pbp_df$event_index))
+    
+    #create LD, MD, and HD dummy variables
+    pbp_df$HD <- ifelse(abs(pbp_df$coords_x)<87.95 & 
+                            abs(pbp_df$coords_x) > 67.95 &
+                            pbp_df$coords_y<8 & pbp_df$coords_y > -8, 1, 0) 
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x < 87.95) & 
+                            abs(pbp_df$coords_y > 67.95) & 
+                            abs(pbp_df$coords_y) < (-0.7*abs(pbp_df$coords_x) 
+                                                    + 69.565) &
+                            abs(pbp_df$coords_y) > 8, 
+                        1, 0)
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x < 67.95) & 
+                            abs(pbp_df$coords_x > 52.95) &
+                            pbp_df$coords_y < 22 & pbp_df$coords_y > -22, 
+                        1, pbp_df$MD)
+    
+    pbp_df$MD <- ifelse(abs(pbp_df$coords_x > 25) & 
+                            abs(pbp_df$coords_x < 52.95) &
+                            pbp_df$coords_y < 8 & pbp_df$coords_y > -8, 
+                        1, pbp_df$MD)
+    
+    pbp_df$LD <- ifelse(pbp_df$MD == 0 & pbp_df$HD == 0, 1, 0)
 
     #turns running sums of home and away xG values into long data format inorder
     #to step plot them
@@ -4877,7 +5159,7 @@ for(game_number in games[[1]]){
                         caption = 'by @Matt_Barlowe')
 
     #plots xG locations and values for each team
-    xg_locations_plot <- ggplot() +
+    xg_locations_plot <- rink +
         geom_point(aes(x = -abs(coords_x), y = coords_y, size = xG),
             data = subset(fenwick_pbp, fenwick_pbp$event_team == home_team &
             fenwick_pbp$event_type %in% c('SHOT', 'MISS')),
@@ -4896,40 +5178,224 @@ for(game_number in games[[1]]){
             fenwick_pbp$event_type %in% c('GOAL')), color = team_colors[away_team],
             shape = 15) +
         labs(title = xg_locations_title, subtitle = final_xg_score_location,
-             caption = 'by @Matt_Barlowe') +
-        geom_segment(aes(x = -87.95, y = -39, xend = -87.95, yend = 39), color = 'red') +
-        geom_segment(aes(x = 87.95, y = -39, xend = 87.95, yend = 39), color = 'red') +
-        geom_segment(aes(x = 0, y = -42, xend = 0, yend = 42), color = 'red') +
-        geom_segment(aes(x = -26, y = -42, xend = -26, yend = 42), color = 'blue') +
-        geom_segment(aes(x = 26, y = -42, xend = 26, yend = 42), color = 'blue') +
-        geom_segment(aes(x = -75, y = 42, xend = 75, yend = 42)) +
-        geom_segment(aes(x = -75, y = -42, xend = 75, yend = -42)) +
-        geom_curve(aes(x = -75, y = -42, xend = -99, yend = -25), curvature = -0.4) +
-        geom_curve(aes(x = -75, y = 42, xend = -99, yend = 25), curvature = 0.4) +
-        geom_segment(aes(x = -99, y = -25, xend = -99, yend = 25)) +
-        geom_curve(aes(x = 75, y = -42, xend = 99, yend = -25), curvature = 0.4) +
-        geom_curve(aes(x = 75, y = 42, xend = 99, yend = 25), curvature = -0.4) +
-        geom_segment(aes(x = 99, y = -25, xend = 99, yend = 25)) +
-        geom_segment(aes(x = -75, y =42, xend = 75, yend = 42)) +
-        geom_segment(aes(x = -75, y = -42, xend = 75, yend = -42)) +
-        geom_circle(aes(x0 = 0, y0 = 0, r = 15), color = 'blue') +
-        geom_circle(aes(x0 = 65.95, y0 = 22, r = 15), color = 'red') +
-        geom_circle(aes(x0 = 65.95, y0 = -22, r = 15), color = 'red') +
-        geom_circle(aes(x0 = -65.95, y0 = 22, r = 15), color = 'red') +
-        geom_circle(aes(x0 = -65.95, y0 = -22, r = 15), color = 'red') +
-        geom_segment(aes(x = -91.61, y = -3, xend = -91.61, yend = 3), color = 'red') +
-        geom_segment(aes(x = 91.61, y = -3, xend = 91.61, yend = 3), color = 'red') +
-        geom_segment(aes(x = 91.61, y = -3, xend = 87.95, yend = -3), color = 'red') +
-        geom_segment(aes(x = 91.61, y = 3, xend = 87.95, yend = 3), color = 'red') +
-        geom_segment(aes(x = -91.61, y = -3, xend = -87.95, yend = -3), color = 'red') +
-        geom_segment(aes(x = -91.61, y = 3, xend = -87.95, yend = 3), color = 'red') +
-        geom_point(aes(x = c(65.95, 65.95, -65.95, -65.95), y = c(22, -22, 22, -22)),
-                   color = 'red', size = 2) +
-        geom_point(aes(x = 0, y= 0), color = 'blue', size = 2) +
-        theme_void() +
-        geom_point(aes(x = c(-21, -21, 21, 21), y = c(22, -22, 22, -22)),
-                   color = 'red', size = 2) +
-        scale_y_continuous(limits = c(-42, 42))
+             caption = 'by @Matt_Barlowe') 
+    
+    ############################################################################
+    ##Creating goalie stats and adding unique keys to all the data tables    ###
+    ############################################################################
+    #calculate goalie stats
+    home_goalie_pbp <- subset(pbp_df, !is.na(pbp_df$home_goalie))
+    away_goalie_pbp <- subset(pbp_df, !is.na(pbp_df$away_goalie))
+    home_goalie_pbp_5v5 <- subset(pbp_df, pbp_df$home_skaters == 5 &
+                                      pbp_df$away_skaters == 5)
+    away_goalie_pbp_5v5 <- subset(pbp_df, pbp_df$home_skaters == 5 &
+                                      pbp_df$away_skaters == 5)
+    
+    #calculate all situation goalie stats
+    home_goalie_stats <- home_goalie_pbp %>% group_by(home_goalie) %>%
+        summarise(
+            game_id = first(home_goalie_pbp$game_id),
+            game_date = first(home_goalie_pbp$game_date),
+            season = first(home_goalie_pbp$season),
+            team = first(home_goalie_pbp$home_team),
+            TOI = sum(event_length)/60, CF = sum(home_corsi),
+            CA = sum(away_corsi), FA = sum(away_corsi), xGA = sum(away_xG),
+            SA = sum(ifelse(event_team == away_team & 
+                                (event_type == "GOAL" | 
+                                     event_type == 'SHOT'), 1, 0)), 
+            GA = sum(ifelse(event_team == away_team & 
+                                event_type == "GOAL", 1, 0)),
+            LDGA = sum(ifelse(event_team == away_team & 
+                                  event_type == "GOAL" &
+                                  LD == 1, 1, 0)),
+            MDGA = sum(ifelse(event_team == away_team & 
+                                  event_type == "GOAL" &
+                                  MD == 1, 1, 0)),
+            HDGA = sum(ifelse(event_team == away_team & 
+                                  event_type == "GOAL" &
+                                  HD == 1, 1, 0)),
+            LDA = sum(ifelse(event_team == away_team &
+                                 LD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0)),
+            MDA = sum(ifelse(event_team == away_team &
+                                 MD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0)),
+            HDA = sum(ifelse(event_team == away_team &
+                                 HD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0))
+        )
+    
+    home_goalie_stats <- home_goalie_stats %>%
+        mutate(sv_percent = round(1-(GA/SA), 3), 
+               fsv_percent = round(1-(GA/FA), 3),
+               xfsv_percent = round(1-(xGA/FA), 3), 
+               dfsv_percent = fsv_percent-xfsv_percent,
+               hdsv_percent = round(1-(HDGA/HDA),3),
+               mdsv_percent = round(1-(MDGA/MDA),3),
+               ldsv_percent = round(1-(LDGA/LDA),3))
+    
+    away_goalie_stats <- away_goalie_pbp %>% group_by(away_goalie) %>%
+        summarise( 
+            game_id = first(home_goalie_pbp$game_id),
+            game_date = first(home_goalie_pbp$game_date),
+            season = first(home_goalie_pbp$season),
+            team = first(home_goalie_pbp$away_team),
+            TOI = sum(event_length)/60, CF = sum(away_corsi),
+            CA = sum(home_corsi), FA = sum(home_corsi), xGA = sum(home_xG),
+            SA = sum(ifelse(event_team == home_team & 
+                                (event_type == "GOAL" | 
+                                     event_type == 'SHOT'), 1, 0)), 
+            GA = sum(ifelse(event_team == home_team & 
+                                event_type == "GOAL", 1, 0)),
+            LDGA = sum(ifelse(event_team == home_team & 
+                                  event_type == "GOAL" &
+                                  LD == 1, 1, 0)),
+            MDGA = sum(ifelse(event_team == home_team & 
+                                  event_type == "GOAL" &
+                                  MD == 1, 1, 0)),
+            HDGA = sum(ifelse(event_team == home_team & 
+                                  event_type == "GOAL" &
+                                  HD == 1, 1, 0)),
+            LDA = sum(ifelse(event_team == home_team &
+                                 LD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0)),
+            MDA = sum(ifelse(event_team == home_team &
+                                 MD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0)),
+            HDA = sum(ifelse(event_team == home_team &
+                                 HD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0))
+        )
+    
+    away_goalie_stats <- away_goalie_stats %>%
+        mutate(sv_percent = round(1-(GA/SA), 3), 
+               fsv_percent = round(1-(GA/FA), 3),
+               xfsv_percent = round(1-(xGA/FA), 3), 
+               dfsv_percent = fsv_percent-xfsv_percent,
+               hdsv_percent = round(1-(HDGA/HDA),3),
+               mdsv_percent = round(1-(MDGA/MDA),3),
+               ldsv_percent = round(1-(LDGA/LDA),3))
+    
+    #calculate goalie 5v5 stats
+    home_goalie_stats_5v5 <- home_goalie_pbp_5v5 %>% group_by(home_goalie) %>%
+        summarise( 
+            game_id = first(home_goalie_pbp$game_id),
+            game_date = first(home_goalie_pbp$game_date),
+            season = first(home_goalie_pbp$season),
+            team = first(home_goalie_pbp$home_team),
+            TOI = sum(event_length)/60, CF = sum(home_corsi),
+            CA = sum(away_corsi), FA = sum(away_corsi), xGA = sum(away_xG),
+            SA = sum(ifelse(event_team == away_team & 
+                                (event_type == "GOAL" | 
+                                     event_type == 'SHOT'), 1, 0)), 
+            GA = sum(ifelse(event_team == away_team & 
+                                event_type == "GOAL", 1, 0)),
+            LDGA = sum(ifelse(event_team == away_team & 
+                                  event_type == "GOAL" &
+                                  LD == 1, 1, 0)),
+            MDGA = sum(ifelse(event_team == away_team & 
+                                  event_type == "GOAL" &
+                                  MD == 1, 1, 0)),
+            HDGA = sum(ifelse(event_team == away_team & 
+                                  event_type == "GOAL" &
+                                  HD == 1, 1, 0)),
+            LDA = sum(ifelse(event_team == away_team &
+                                 LD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0)),
+            MDA = sum(ifelse(event_team == away_team &
+                                 MD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0)),
+            HDA = sum(ifelse(event_team == away_team &
+                                 HD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0))
+        )
+    
+    home_goalie_stats_5v5 <- home_goalie_stats_5v5 %>%
+        mutate(sv_percent = round(1-(GA/SA), 3), 
+               fsv_percent = round(1-(GA/FA), 3),
+               xfsv_percent = round(1-(xGA/FA), 3), 
+               dfsv_percent = fsv_percent-xfsv_percent,
+               hdsv_percent = round(1-(HDGA/HDA),3),
+               mdsv_percent = round(1-(MDGA/MDA),3),
+               ldsv_percent = round(1-(LDGA/LDA),3))
+    
+    away_goalie_stats_5v5 <- away_goalie_pbp_5v5 %>% group_by(away_goalie) %>%
+        summarise( 
+            game_id = first(home_goalie_pbp$game_id),
+            game_date = first(home_goalie_pbp$game_date),
+            season = first(home_goalie_pbp$season),
+            team = first(home_goalie_pbp$away_team),
+            TOI = sum(event_length)/60, CF = sum(away_corsi),
+            CA = sum(home_corsi), FA = sum(home_corsi), xGA = sum(home_xG),
+            SA = sum(ifelse(event_team == home_team & 
+                                (event_type == "GOAL" | 
+                                     event_type == 'SHOT'), 1, 0)), 
+            GA = sum(ifelse(event_team == home_team & 
+                                event_type == "GOAL", 1, 0)),
+            LDGA = sum(ifelse(event_team == home_team & 
+                                  event_type == "GOAL" &
+                                  LD == 1, 1, 0)),
+            MDGA = sum(ifelse(event_team == home_team & 
+                                  event_type == "GOAL" &
+                                  MD == 1, 1, 0)),
+            HDGA = sum(ifelse(event_team == home_team & 
+                                  event_type == "GOAL" &
+                                  HD == 1, 1, 0)),
+            LDA = sum(ifelse(event_team == home_team &
+                                 LD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0)),
+            MDA = sum(ifelse(event_team == home_team &
+                                 MD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0)),
+            HDA = sum(ifelse(event_team == home_team &
+                                 HD == 1 &
+                                 (event_type == "GOAL" |
+                                      event_type == "SHOT"), 1, 0))
+        )
+    
+    away_goalie_stats_5v5 <- away_goalie_stats_5v5 %>%
+        mutate(sv_percent = round(1-(GA/SA), 3), 
+               fsv_percent = round(1-(GA/FA), 3),
+               xfsv_percent = round(1-(xGA/FA), 3), 
+               dfsv_percent = fsv_percent-xfsv_percent,
+               hdsv_percent = round(1-(HDGA/HDA),3),
+               mdsv_percent = round(1-(MDGA/MDA),3),
+               ldsv_percent = round(1-(LDGA/LDA),3))
+    
+    home_goalie_stats_5v5 <- rename(home_goalie_stats_5v5, goalie = home_goalie)
+    away_goalie_stats_5v5 <- rename(away_goalie_stats_5v5, goalie = away_goalie)
+    home_goalie_stats <- rename(home_goalie_stats, goalie = home_goalie)
+    away_goalie_stats <- rename(away_goalie_stats, goalie = away_goalie)
+    
+    goalie_stats_all_sits <- rbind(home_goalie_stats, away_goalie_stats)
+    goalie_stats_5v5 <- rbind(home_goalie_stats_5v5, away_goalie_stats_5v5)
+    
+    goalie_stats_5v5 <- goalie_stats_5v5[!is.na(goalie_stats_5v5$goalie),]
+    goalie_stats_all_sits <- goalie_stats_all_sits[!is.na(goalie_stats_all_sits$goalie),]
+    
+    daily_goalie_stats <- rbind(daily_goalie_stats, goalie_stats_all_sits)
+    daily_goalie_stats_5v5 <- rbind(daily_goalie_stats_5v5, goalie_stats_5v5)
+    
+    #create unique keys for each table 
+    
+    goalie_stats_all_sits$db_key <- paste0(goalie_stats_all_sits$goalie,
+                                           goalie_stats_all_sits$game_date,
+                                           goalie_stats_all_sits$game_id)
+    
+    goalie_stats_5v5$db_key <- paste0(goalie_stats_5v5$goalie,
+                                      goalie_stats_5v5$game_date,
+                                      goalie_stats_5v5$game_id)
 
     ############################################################################
     ##Saves all graphs to a folder designated by game number and adds the full##
@@ -4968,6 +5434,8 @@ for(game_number in games[[1]]){
                                           'teamstats5v5'), delim = '|')
     write_delim(team_stats_all_sits, paste(toString(game_number),
                                           'teamstats'), delim = '|')
+    write_delim(goalie_stats_all_sits, 'goaliestats', delim = '|')
+    write_delim(goalie_stats_5v5, 'goaliestats5v5', delim = '|')
 
 
 
@@ -5003,18 +5471,80 @@ fileConn <- file('~/graphautomation/dailygames.txt')
 writeLines(daily_games, fileConn)
 close(fileConn)
 
+daily_adj_player_stats_5v5$season <- first(pbp_df$season)
+daily_adjusted_player_stats$season <- first(pbp_df$season)
+daily_player_stats$season <- first(pbp_df$season)
+daily_player_stats_5v5$season <- first(pbp_df$season)
+
+daily_adj_player_stats_5v5$session <- first(pbp_df$session)
+daily_adjusted_player_stats$session <- first(pbp_df$session)
+daily_player_stats$session <- first(pbp_df$session)
+daily_player_stats_5v5$session <- first(pbp_df$session)
+#create keys for daily stat files
+daily_adj_player_stats_5v5$db_key <- paste0(daily_adj_player_stats_5v5$player, 
+                                daily_adj_player_stats_5v5$game_date,
+                                daily_adj_player_stats_5v5$game_id,
+                                daily_adj_player_stats_5v5$season)
+
+daily_adj_team_stats_5v5$db_key <- paste0(daily_adj_team_stats_5v5$Team, 
+                                     daily_adj_team_stats_5v5$game_date,
+                                     daily_adj_team_stats_5v5$game_id,
+                                     daily_adj_team_stats_5v5$season)
+
+daily_adjusted_player_stats$db_key <- paste0(daily_adjusted_player_stats$player, 
+                                             daily_adjusted_player_stats$game_date,
+                                             daily_adjusted_player_stats$game_id,
+                                             daily_adjusted_player_stats$season)
+
+daily_goalie_stats$db_key <- paste0(daily_goalie_stats$goalie, 
+                                    daily_goalie_stats$game_date,
+                                    daily_goalie_stats$game_id,
+                                    daily_goalie_stats$season)
+
+daily_goalie_stats_5v5$db_key <- paste0(daily_goalie_stats_5v5$goalie,
+                                        daily_goalie_stats_5v5$game_date,
+                                        daily_goalie_stats_5v5$game_id,
+                                        daily_goalie_stats_5v5$season)
+
+daily_player_stats$db_key <- paste0(daily_player_stats$player,
+                                    daily_player_stats$game_date,
+                                    daily_player_stats$game_id,
+                                    daily_player_stats$season)
+
+daily_player_stats_5v5$db_key <- paste0(daily_player_stats_5v5$player,
+                                        daily_player_stats_5v5$game_date,
+                                        daily_player_stats_5v5$game_id,
+                                        daily_player_stats_5v5$season)
+
+daily_team_adjusted_stats$db_key <- paste0(daily_team_adjusted_stats$Team,
+                                           daily_team_adjusted_stats$game_date,
+                                           daily_team_adjusted_stats$game_id,
+                                           daily_team_adjusted_stats$season)
+
+daily_team_stats$db_key <- paste0(daily_team_stats$Team,
+                                  daily_team_stats$game_date,
+                                  daily_team_stats$game_id,
+                                  daily_team_stats$season)
+
+daily_team_stats_5v5$db_key <- paste0(daily_team_stats_5v5$Team,
+                                  daily_team_stats_5v5$game_date,
+                                  daily_team_stats_5v5$game_id,
+                                  daily_team_stats_5v5$season)
 #write all the daily compiled stats to | delim files
 dir.create(paste0('~/HockeyStuff/xGGameBreakdowns/dailycompiledstats/', as.character(date)))
 setwd(paste0('~/HockeyStuff/xGGameBreakdowns/dailycompiledstats/', as.character(date)))
 write_delim(daily_adj_player_stats_5v5, 'dailyplayerstatsadj5v5', delim = '|')
 write_delim(daily_player_stats_5v5, 'dailyplayerstats5v5', delim = '|')
-write_delim(daily_player_stats, 'dailyplayerstat', delim = '|')
+write_delim(daily_player_stats, 'dailyplayerstats', delim = '|')
 write_delim(daily_adjusted_player_stats, 'dailyplayerstatsadj', delim = '|')
 write_delim(daily_team_adjusted_stats, 'dailyteamstatsadj', delim = '|')
 write_delim(daily_team_stats, 'dailyteamstats', delim = '|')
 write_delim(daily_adj_team_stats_5v5, 'dailyteamstatsadj5v5', delim = '|')
 write_delim(daily_team_stats_5v5, 'dailyteamstats5v5', delim = '|')
 write_delim(daily_pbp, 'dailypbp', delim = '|')
+write_delim(daily_goalie_stats, 'dailygoaliestats', delim = '|')
+write_delim(daily_goalie_stats_5v5, 'dailygoaliestats5v5', delim = '|')
+
 
 #log the games the scraper can't scrape
 if (length(unscraped_games) > 0){

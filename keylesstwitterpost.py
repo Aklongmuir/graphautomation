@@ -129,7 +129,7 @@ def main():
         pass
     else:
         top5_post(api, top5)
-        print("Yesterday's gaes posted")
+        print("Yesterday's games posted")
 
     games.close()
     top5.close()
