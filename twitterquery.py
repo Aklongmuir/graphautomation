@@ -1,14 +1,13 @@
 import keylesstwitterpost as twitterpost
 import tweepy
 import sys
-import psycopg2
 import pandas as pd
 import matplotlib.pyplot as plt
 import random
 import os
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.sql import func, select
-from sqlalchemy.schema import MetaData, Table
+from sqlalchemy.schema import MetaData
 
 def text_error_check(text):
     '''
@@ -384,6 +383,9 @@ def graph_creation(dataframe, graph_query):
     '''
 
     percent_stats = ['cf_percent', 'ff_percent', 'xgf_percent']
+    rate_stats = ['cf60', 'ff60', 'fa60', 'ca60', 'ixg', 'ixg60', 'xgf60',
+                  'xga60', 'g60', 'a160', 'gf60', 'ga60']
+
     dataframe.head()
     grouped = dataframe.groupby(dataframe.columns[0])
     fig, ax = plt.subplots(figsize = (16,6))
