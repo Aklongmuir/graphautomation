@@ -1369,7 +1369,7 @@ for (season in seasons){
         away_goalie_pbp_5v5 <- pbp_df_5v5
         
         #calculate all situation goalie stats
-        home_goalie_stats <- home_goalie_pbp %>% group_by(home_goalie)
+        home_goalie_stats <- home_goalie_pbp %>% group_by(home_goalie) %>%
             summarise(
                       game_id = first(home_goalie_pbp$game_id),
                       game_date = first(home_goalie_pbp$game_date),

@@ -1,4 +1,4 @@
-games <- c(20715)
+games <- c(20617:21230)
 seasons <- c(2018)
 shots <- c("SHOT", "GOAL")
 
