@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.sql import func, select
 from sqlalchemy.schema import MetaData
 
+
 def text_error_check(text):
 
     '''
@@ -50,52 +51,64 @@ def query_creation(query_list):
     engine = create_engine(os.environ.get('DB_CONNECT'))
     conn = engine.connect()
     metadata = MetaData()
-    metadata.reflect(bind = engine)
+    metadata.reflect(bind=engine)
     print(query_list)
 
     if len(query_list) == 3:
         database = metadata.tables[query_list[1]]
         if query_list[1][0:6] == 'player':
-            sql_query = select([database.c.player,\
-                        (func.sum(database.c.cf)/\
-                        (func.sum(database.c.ca)+func.sum(database.c.cf))*100),\
-                        (func.sum(database.c.xgf)/\
-                        (func.sum(database.c.xga)+func.sum(database.c.xgf))*100),\
-                        func.sum(database.c.ixg)]).\
-                        where(and_(database.c.player == query_list[0],\
-                        database.c.season == format_season(query_list[-1]))).\
-                        group_by(database.c.player)
+            sql_query = select([database.c.player,
+                               (func.sum(database.c.cf) /
+                                (func.sum(database.c.ca) +
+                                   func.sum(database.c.cf))*100),
+                               (func.sum(database.c.xgf) /
+                                (func.sum(database.c.xga) +
+                                   func.sum(database.c.xgf))*100),
+                               func.sum(database.c.ixg)]).\
+                        where(and_(database.c.player == query_list[0],
+                              database.c.season ==
+                              format_season(query_list[-1])))\
+                        .group_by(database.c.player)
         else:
-            sql_query = select([database.c.team,\
-                        (func.sum(database.c.cf)/\
-                        (func.sum(database.c.ca)+func.sum(database.c.cf))*100),\
-                        (func.sum(database.c.xgf)/\
-                        (func.sum(database.c.xga)+func.sum(database.c.xgf))*100)]).\
-                        where(and_(database.c.team == query_list[0],\
-                        database.c.season == format_season(query_list[-1])))\
-                        .group_by(database.c.team)
+            sql_query = select([database.c.team,
+                               (func.sum(database.c.cf) /
+                                (func.sum(database.c.ca) +
+                                   func.sum(database.c.cf))*100),
+                               (func.sum(database.c.xgf) /
+                                (func.sum(database.c.xga) +
+                                   func.sum(database.c.xgf))*100)]).\
+                               where(and_(database.c.team == query_list[0],
+                                     database.c.season ==
+                                     format_season(query_list[-1])))\
+                               .group_by(database.c.team)
     elif len(query_list) == 4:
         database = metadata.tables[query_list[2]]
         if query_list[2][0:6] == 'player':
-            sql_query = select([database.c.player,\
-                        (func.sum(database.c.cf)/\
-                        (func.sum(database.c.ca)+func.sum(database.c.cf))*100),\
-                        (func.sum(database.c.xgf)/\
-                        (func.sum(database.c.xga)+func.sum(database.c.xgf))*100),\
-                        func.sum(database.c.ixg)]).\
-                        where(and_(or_(database.c.player == query_list[0], \
-                        database.c.player == query_list[1]), \
-                        database.c.season == format_season(query_list[-1]))).\
+            sql_query = select([database.c.player,
+                               (func.sum(database.c.cf) /
+                                (func.sum(database.c.ca) +
+                                   func.sum(database.c.cf))*100),
+                               (func.sum(database.c.xgf) /
+                                (func.sum(database.c.xga) +
+                                   func.sum(database.c.xgf))*100),
+                               func.sum(database.c.ixg)]).\
+                        where(and_(or_(database.c.player == query_list[0],
+                              database.c.player == query_list[1]),
+                              database.c.season ==
+                              format_season(query_list[-1]))).\
                         group_by(database.c.player)
         else:
-            sql_query = select([database.c.team,\
-                        (func.sum(database.c.cf)/\
-                        (func.sum(database.c.ca)+func.sum(database.c.cf))*100),\
-                        (func.sum(database.c.xgf)/\
-                        (func.sum(database.c.xga)+func.sum(database.c.xgf))*100)]).\
-                        where(and_(or_(database.c.team == query_list[0], \
-                        database.c.team == query_list[1]), \
-                        database.c.season == format_season(query_list[-1]))).\
+            sql_query = select([database.c.team,
+                               (func.sum(database.c.cf) /
+                                (func.sum(database.c.ca) +
+                                   func.sum(database.c.cf))*100),
+                               (func.sum(database.c.xgf) /
+                                (func.sum(database.c.xga) +
+                                   func.sum(database.c.xgf))*100)]).\
+                        where(and_(or_(database.c.team == query_list[0],
+                              database.c.team == query_list[1]),
+                              database.c.season ==
+                              format_season(query_list[-1]))).\
                         group_by(database.c.team)
 
     results = conn.execute(sql_query)
@@ -108,8 +121,8 @@ def query_creation(query_list):
 
     data = []
     for row in results:
-        data.append('{}'.format(str(row).replace('[', '').replace(',', '')\
-                .replace(']', '').replace("'", '').replace('Decimal', '')))
+        data.append('{}'.format(str(row).replace('[', '').replace(',', '')
+                    .replace(']', '').replace("'", '').replace('Decimal', '')))
     conn.close()
     print(data)
     return data
@@ -126,36 +139,36 @@ def query_parse(text_list):
     '''
     new_query = []
     if 'playerstats' in text_list and 'vs.' not in text_list:
-        #append player name
+        # append player name
         new_query.append('{}.{}'.format(text_list[1], text_list[2]).upper())
-        #append database
+        # append database
         new_query.append(text_list[3].lower())
-        #append year
+        # append year
         new_query.append(text_list[4])
     elif 'playerstats' in text_list and 'vs.' in text_list:
-        #append first player name
+        # append first player name
         new_query.append('{}.{}'.format(text_list[1], text_list[2]).upper())
-        #append second player name
+        # append second player name
         new_query.append('{}.{}'.format(text_list[4], text_list[5]).upper())
-        #append database
+        # append database
         new_query.append(text_list[6].lower())
-        #append year
+        # append year
         new_query.append(text_list[7])
     elif 'teamstats' in text_list and 'vs.' not in text_list:
-        #append team name
+        # append team name
         new_query.append(text_list[1].upper())
-        #append database
+        # append database
         new_query.append(text_list[2].lower())
-        #append year
+        # append year
         new_query.append(text_list[3])
     elif 'teamstats' in text_list and 'vs.' in text_list:
-        #append first team name
+        # append first team name
         new_query.append(text_list[1].upper())
-        #append second team name
+        # append second team name
         new_query.append(text_list[3].upper())
-        #append database
+        # append database
         new_query.append(text_list[4].lower())
-        #append year
+        # append year
         new_query.append(text_list[5])
 
     if 'vs.' in text_list:
@@ -230,8 +243,8 @@ def twitter_text_parser(data_text, status_text, season):
             twitter_string += '\n'.join(data_list)
             twitter_string += '\n'
 
-
     return twitter_string
+
 
 def graph_query_parse(query_text):
 
@@ -244,8 +257,8 @@ def graph_query_parse(query_text):
                  into a list.
 
     Outputs:
-    parsed_query - a list of the elements needed to pass to the sql query creation
-                   function.
+    parsed_query - a list of the elements needed to pass to the sql query
+                   creation function.
     '''
 
     parsed_query = []
@@ -269,24 +282,27 @@ def graph_query_parse(query_text):
         parsed_query.append(query_text[5])
         parsed_query.append(query_text[2])
     elif 'player' in query_text and 'vs.' in query_text:
-        #append first player name
-        parsed_query.append('{}.{}'.format(query_text[1], query_text[2]).upper())
-        #append second player name
-        parsed_query.append('{}.{}'.format(query_text[4], query_text[5]).upper())
-        #append stat
+        # append first player name
+        parsed_query.append('{}.{}'.format(query_text[1],
+                                           query_text[2]).upper())
+        # append second player name
+        parsed_query.append('{}.{}'.format(query_text[4],
+                                           query_text[5]).upper())
+        # append stat
         parsed_query.append(query_text[8].lower())
-        #append year
+        # append year
         parsed_query.append(query_text[9])
-        #append database
+        # append database
         parsed_query.append(query_text[6])
     elif 'player' in query_text and 'vs.' not in query_text:
-        #append player name
-        parsed_query.append('{}.{}'.format(query_text[1], query_text[2]).upper())
-        #append stat
+        # append player name
+        parsed_query.append('{}.{}'.format(query_text[1],
+                                           query_text[2]).upper())
+        # append stat
         parsed_query.append(query_text[5].lower())
-        #append year
+        # append year
         parsed_query.append(query_text[6])
-        #append database
+        # append database
         parsed_query.append(query_text[3])
 
     '''
@@ -294,7 +310,8 @@ def graph_query_parse(query_text):
     the database so the right database table will be queried later
     '''
     if '-adj' in query_text and '-5v5' in query_text:
-        parsed_query[-1] = '{}{}{}{}'.format(parsed_query[-1], 'stats', 'adj', '5v5')
+        parsed_query[-1] = '{}{}{}{}'.format(parsed_query[-1],
+                                             'stats', 'adj', '5v5')
     elif '-adj' in query_text and '-5v5' not in query_text:
         parsed_query[-1] = '{}{}{}'.format(parsed_query[-1], 'stats', 'adj')
     elif '-adj' not in query_text and '-5v5' in query_text:
@@ -305,10 +322,12 @@ def graph_query_parse(query_text):
     print(parsed_query)
     return parsed_query
 
+
 def format_season(number):
     number_less = int(number) - 1
     number = str(number_less) + str(number)
     return number
+
 
 def graph_query_creation(query_list):
     '''
@@ -323,95 +342,120 @@ def graph_query_creation(query_list):
                moving average calculated
     '''
 
+    rate_stats = ['cf60', 'ff60', 'fa60', 'ca60', 'ixg', 'ixg60', 'xgf60',
+                  'xga60', 'g60', 'a160', 'gf60', 'ga60']
     engine = create_engine(os.environ.get('DB_CONNECT'))
     conn = engine.connect()
     metadata = MetaData()
-    metadata.reflect(bind = engine)
+    metadata.reflect(bind=engine)
 
     if len(query_list) == 4:
         database = metadata.tables[query_list[3]]
         if query_list[-1][:6] == 'player':
-            sql_query = select([database.c.player, database.c.game_date,\
-                        database.c[query_list[1]]]).\
-                        where(and_(database.c.player == query_list[0], \
-                        database.c.season == format_season(query_list[-2])))
+            sql_query = select([database.c.player, database.c.game_date,
+                               database.c[query_list[1]]]).\
+                        where(and_(database.c.player == query_list[0],
+                              database.c.season ==
+                              format_season(query_list[-2])))
         else:
-            sql_query = select([database.c.team, database.c.game_date,\
-                        database.c[query_list[1]]]).\
-                        where(and_(database.c.team == query_list[0], \
-                        database.c.season == format_season(query_list[-2])))
+            sql_query = select([database.c.team, database.c.game_date,
+                               database.c[query_list[1]]]).\
+                        where(and_(database.c.team == query_list[0],
+                              database.c.season ==
+                              format_season(query_list[-2])))
+        if query_list[1] in rate_stats:
+            average = conn.execute(select([func.avg(database.c[query_list[1]])]).
+                                   where(database.c.season ==
+                                         format_season(query_list[-2])))
+
     elif len(query_list) == 5:
         database = metadata.tables[query_list[-1]]
         if query_list[-1][:6] == 'player':
-            sql_query = select([database.c.player, database.c.game_date,\
-                        database.c[query_list[2]]]).\
-                        where(and_(or_(database.c.player == query_list[0], \
-                        database.c.player == query_list[1]),\
-                        database.c.season == format_season(query_list[-2])))
+            sql_query = select([database.c.player, database.c.game_date,
+                               database.c[query_list[2]]]).\
+                        where(and_(or_(database.c.player == query_list[0],
+                              database.c.player == query_list[1]),
+                              database.c.season ==
+                              format_season(query_list[-2])))
         else:
-            sql_query = select([database.c.team, database.c.game_date,\
-                        database.c[query_list[2]]]).\
-                        where(and_(or_(database.c.team == query_list[0], \
-                        database.c.team == query_list[1]),\
-                        database.c.season == format_season(query_list[-2])))
+            sql_query = select([database.c.team, database.c.game_date,
+                               database.c[query_list[2]]]).\
+                        where(and_(or_(database.c.team == query_list[0],
+                              database.c.team == query_list[1]),
+                              database.c.season ==
+                              format_season(query_list[-2])))
+        if query_list[2] in rate_stats:
+            average = conn.execute(select([func.avg(database.c[query_list[2]])]).
+                                   where(database.c.season ==
+                                         format_season(query_list[-2])))
 
+    average = list(average)
+    print(average)
+    average = '{}'.format(str(average).replace('(', '').replace(',', '')
+                          .replace(')', '').replace("'", '')
+                          .replace('Decimal', '').replace('[', '').
+                          replace(']', ''))
+    print(average)
+    average = float(average)
     query_df = pd.read_sql_query(sql_query, conn)
     query_df = query_df.sort_values('game_date')
 
-
     query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
-            [query_df.columns[2]]\
-            .rolling(5).mean().reset_index(0, drop = True)
+            [query_df.columns[2]].rolling(5).mean().reset_index(0, drop=True)
 
-    print(query_df.head())
-    return query_df
+    return query_df, average
 
 
-def graph_creation(dataframe, graph_query):
+def graph_creation(dataframe, graph_query, average):
     '''
     This function takes a dataframe and plots it based on the groups in either
     the player or team column depending on the orginal query from the user
 
     Inputs:
     dataframe - dataframe created by the graph_database_query() function will
-                have columns consisting of player/team, game_date, stat queried,
-                and the 5 game moving average of that statistic.
+                have columns consisting of player/team, game_date, stat
+                queried, and the 5 game moving average of that statistic.
 
     Outputs:
     file_name - this is a .png file of the graph created by plotting the moving
-                average of the user requested statistic against the dates of the
-                games played. This image file will then be uploaded to the API
-                and attached to the replying tweet by the bot
+                average of the user requested statistic against the dates
+                of the games played. This image file will then be uploaded
+                to the API and attached to the replying tweet by the bot
     '''
 
     percent_stats = ['cf_percent', 'ff_percent', 'xgf_percent']
     rate_stats = ['cf60', 'ff60', 'fa60', 'ca60', 'ixg', 'ixg60', 'xgf60',
                   'xga60', 'g60', 'a160', 'gf60', 'ga60']
 
-    dataframe.head()
+    print(dataframe.head())
     grouped = dataframe.groupby(dataframe.columns[0])
-    fig, ax = plt.subplots(figsize = (16,6))
+    fig, ax = plt.subplots(figsize=(16, 6))
 
     for key, group in grouped:
-        group.plot(x = 'game_date', y = 'moving_avg', label = key, ax = ax)
+        group.plot(x='game_date', y='moving_avg', label=key, ax=ax)
 
     if len(graph_query) == 5:
-        plt.title('{} & {} {} {} 5 game rolling average by @BarloweAnalytic'\
-                .format(graph_query[0], graph_query[1], graph_query[3], dataframe.columns[2]))
+        plt.title('{} & {} {} {} 5 game rolling average by @BarloweAnalytic'
+                  .format(graph_query[0], graph_query[1], graph_query[3],
+                          dataframe.columns[2]))
     else:
-        plt.title('{} {} {} 5 game rolling average by @BarloweAnalytic'\
-                .format(graph_query[0], graph_query[2], dataframe.columns[2]))
+        plt.title('{} {} {} 5 game rolling average by @BarloweAnalytic'
+                  .format(graph_query[0], graph_query[2],
+                          dataframe.columns[2]))
 
     plt.ylabel(dataframe.columns[2])
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     if dataframe.columns[2] in percent_stats:
-        plt.axhline(y = 50, color = 'k', linestyle = '--')
-    ax.grid(alpha = .5)
-    file_name = 'plot{}.png'.format(str(random.randint(1,1000)))
+        plt.axhline(y=50, color='k', linestyle='--')
+    elif dataframe.columns[2] in rate_stats:
+        plt.axhline(y=average, color='k', linestyle='--')
+    ax.grid(alpha=.5)
+    file_name = 'plot{}.png'.format(str(random.randint(1, 1000)))
     fig.savefig(file_name)
 
     return file_name
+
 
 def three_name_parser(status_list):
     new_list = []
@@ -424,6 +468,7 @@ def three_name_parser(status_list):
     else:
         return status_list
 
+
 class BotStreamer(tweepy.StreamListener):
     '''
     This class inherits from tweepy's StreamListener class with the on_status()
@@ -434,13 +479,16 @@ class BotStreamer(tweepy.StreamListener):
     def __init__(self, api):
         self.api = api
 
-# Called when a new status arrives which is passed down from the on_data method of the StreamListener
+    # Called when a new status arrives which is passed down from the on_data
+    # method of the StreamListener
     def on_status(self, status):
-#gets username of the person who tweeted bot
+        # gets username of the person who tweeted bot
         username = status.user.screen_name
-#stores status.id of the query tweet to the bot knows what tweet to reply to
+        # stores status.id of the query tweet to the bot knows
+        # what tweet to reply to
         status_id = status.id
-#stores text of tweet and splits it so that the bot can further process it
+        # stores text of tweet and splits it so that the bot can further
+        # process it
         status = status.text
         status = status.split(' ')
         if text_error_check(status):
@@ -448,24 +496,25 @@ class BotStreamer(tweepy.StreamListener):
 
         if username == 'CJTDevil':
             try:
-                self.api.update_status(status =  '@{}\n You have insulted'\
-                        'my mighty creator the God Emperor before you can use'\
-                        'the bot again you must repent for choosing me over'\
-                        'him and seek supplication for your sins.'.format(\
-                        username,tweet_text),\
-                        in_reply_to_status_id = status_id)
-            except:
+                self.api.update_status(status='@{}\n You have insulted'
+                                       'my mighty creator the God Emperor'
+                                       'before you can use the bot again you'
+                                       'must repent for choosing me over'
+                                       'him and seek supplication for your'
+                                       'sins.'.format(username, tweet_text),
+                                       in_reply_to_status_id=status_id)
+            except Exception as ex:
+                print(ex)
                 return
-
 
         try:
             if 'graph' in status:
                 status = three_name_parser(status)
                 query = graph_query_parse(status)
-                graph_df = graph_query_creation(query)
-                graph_name = graph_creation(graph_df, query)
-                self.api.update_with_media(graph_name, status = '@{}'.format(username),\
-                        in_reply_to_status_id = status_id)
+                graph_df, average = graph_query_creation(query)
+                graph_name = graph_creation(graph_df, query, average)
+                self.api.update_with_media(graph_name, status='@{}'.format(username),
+                                           in_reply_to_status_id=status_id)
                 os.remove(graph_name)
 
             else:
@@ -473,16 +522,13 @@ class BotStreamer(tweepy.StreamListener):
                 query = query_parse(status)
                 query_text = query_creation(query)
                 tweet_text = twitter_text_parser(query_text, status, query[-1])
-                self.api.update_status(status =  '@{}\n{}'.format(username,tweet_text),\
-                       in_reply_to_status_id = status_id)
+                self.api.update_status(status='@{}\n{}'.format(username,
+                                                               tweet_text),
+                                       in_reply_to_status_id=status_id)
 
         except Exception as ex:
             print(ex)
             return
-
-
-
-
 
 
 def main():
@@ -497,22 +543,22 @@ def main():
     Outputs:
     None
     '''
-#this function gets the twitter api keys from the text file they are stored in
-#the contents of the function can be found in the keylesstwitter.py file on
-#github
+    # this function gets the twitter api keys from the text file they
+    # are stored in the contents of the function can be found in the
+    # keylesstwitter.py file on github
     twitter_keys = twitterpost.get_twitter_keys(sys.argv[1])
     auth = tweepy.OAuthHandler(twitter_keys['Consumer Key'],
-            twitter_keys['Consumer Secret Key'])
+                               twitter_keys['Consumer Secret Key'])
     auth.set_access_token(twitter_keys['Access Key'],
-            twitter_keys['Access Secret Key'])
+                          twitter_keys['Access Secret Key'])
     api = tweepy.API(auth)
-
 
     myStreamListener = BotStreamer(api)
 # Construct the Stream instance using the BotStreamer class as the listener and
-#set it to track whenever people tweet at it
-    stream = tweepy.Stream(auth = api.auth, listener = myStreamListener)
+# set it to track whenever people tweet at it
+    stream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
     stream.filter(track=['@barloweanalytic'])
+
 
 if __name__ == '__main__':
     main()
