@@ -2,13 +2,14 @@ import keylesstwitterpost as twitterpost
 import tweepy
 import sys
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import random
 import os
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.sql import func, select
 from sqlalchemy.schema import MetaData
-
 
 def text_error_check(text):
 
@@ -566,7 +567,16 @@ def main():
 # Construct the Stream instance using the BotStreamer class as the listener and
 # set it to track whenever people tweet at it
     stream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
-    stream.filter(track=['@barloweanalytic'])
+    wait_time = 100
+    while True:
+        try:
+            stream.filter(track=['@barloweanalytic'])
+        except Exception as ex:
+            time.sleep(wait_time)
+            wait_time += 60
+            if wait_time > 500:
+                wait_time = 0
+
 
 
 if __name__ == '__main__':
