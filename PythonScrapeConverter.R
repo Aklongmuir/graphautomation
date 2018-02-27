@@ -2,7 +2,10 @@ library(readr)
 library(dplyr)
 library(stringr)
 
-file_name <- '~/HockeyStuff/xGGameBreakdowns/2018/20394/20394.csv'
+#remember to change game id and season to appropriate numbers you idiot before 
+#you run this lines 41 and 49
+
+file_name <- '~/NHLPbPDatabase/20031.csv'
 
 python_pbp_df <- read_delim(file_name, delim = ',')
 
@@ -35,7 +38,7 @@ drops <- c('Time_Elapsed', 'Ev_Zone', 'Home_Zone', 'p1_ID', 'p2_ID', 'p3_ID',
 
 python_pbp_df <- python_pbp_df[,!(names(python_pbp_df) %in% drops)]
                                           
-python_pbp_df$season <- '20172018'
+python_pbp_df$season <- '20152016'
 python_pbp_df$session <- 'R'
 python_pbp_df$game_score_state <- paste0(python_pbp_df$away_score, 'v', python_pbp_df$home_score)
 python_pbp_df$highlight_code <- 'NA'
@@ -43,7 +46,7 @@ python_pbp_df$away_skaters <- python_pbp_df$away_skaters - 1
 python_pbp_df$home_skaters <- python_pbp_df$home_skaters - 1
 python_pbp_df$event_length <- python_pbp_df$game_seconds - lag(python_pbp_df$game_seconds)
 python_pbp_df$players_substituted <- NA
-python_pbp_df$game_id <- paste0('20170', python_pbp_df$game_id)
+python_pbp_df$game_id <- paste0('20150', python_pbp_df$game_id)
 
 python_pbp_df$event_detail <- ifelse(python_pbp_df$event_detail == 'SNAP SHOT', 'Snap', 
                                      python_pbp_df$event_detail)
@@ -96,10 +99,11 @@ period1 <- subset(python_pbp_df$game_seconds, python_pbp_df$game_period == 1)
 period2 <- subset(python_pbp_df$game_seconds, python_pbp_df$game_period == 2) + 1200
 period3 <- subset(python_pbp_df$game_seconds, python_pbp_df$game_period == 3) + 2400
 
+python_pbp_df <- subset(python_pbp_df, python_pbp_df$game_period<5)
 gameseconds <- c(period1, period2, period3)
 python_pbp_df$game_seconds <- gameseconds
 python_pbp_df <- replace_na(python_pbp_df, list(event_length = 0))
 python_pbp_df$event_length <- ifelse(python_pbp_df$event_length == -1200, 0, python_pbp_df$event_length)
-write_delim(python_pbp_df, '~/HockeyStuff/xGGameBreakdowns/2018/20394/20394', delim = '|')
+write_delim(python_pbp_df, '~/HockeyStuff/xGGameBreakdowns/2016/20031/20031', delim = '|')
 #columns to drop: Time_Elapsed Ev_Zone Home_Zone p1_ID p2_ID p3_ID awayplayer1_id
 #Away_Goalie_Id, Home_Goalie_Id Home_Coach Away_Coach
