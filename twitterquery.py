@@ -3,13 +3,15 @@ import tweepy
 import sys
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import random
+import time
 import os
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.sql import func, select
 from sqlalchemy.schema import MetaData
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 
 def text_error_check(text):
 
@@ -366,12 +368,14 @@ def graph_query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-2])))
         if query_list[1] in rate_stats:
-            average = conn.execute(select([func.avg(database.c[query_list[1]])]).
+            average = conn.execute(select
+                                   ([func.avg(database.c[query_list[1]])]).
                                    where(database.c.season ==
                                          format_season(query_list[-2])))
             average = list(average)
             print(average)
-            average = '{}'.format(str(average).replace('(', '').replace(',', '')
+            average = '{}'.format(str(average).
+                                  replace('(', '').replace(',', '')
                                   .replace(')', '').replace("'", '')
                                   .replace('Decimal', '').replace('[', '').
                                   replace(']', ''))
@@ -395,14 +399,19 @@ def graph_query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-2])))
         if query_list[2] in rate_stats:
-            average = conn.execute(select([func.avg(database.c[query_list[2]])]).
+            average = conn.execute(select
+                                   ([func.avg(database.c[query_list[2]])]).
                                    where(database.c.season ==
                                          format_season(query_list[-2])))
             average = list(average)
             print(average)
-            average = '{}'.format(str(average).replace('(', '').replace(',', '')
-                                  .replace(')', '').replace("'", '')
-                                  .replace('Decimal', '').replace('[', '').
+            average = '{}'.format(str(average)
+                                  .replace('(', '')
+                                  .replace(',', '')
+                                  .replace(')', '')
+                                  .replace("'", '')
+                                  .replace('Decimal', '')
+                                  .replace('[', '').
                                   replace(']', ''))
             print(average)
             average = float(average)
@@ -511,7 +520,7 @@ class BotStreamer(tweepy.StreamListener):
                                        'before you can use the bot again you'
                                        'must repent for choosing me over'
                                        'him and seek supplication for your'
-                                       'sins.'.format(username, tweet_text),
+                                       'sins.'.format(username),
                                        in_reply_to_status_id=status_id)
             except Exception as ex:
                 print(ex)
@@ -523,7 +532,8 @@ class BotStreamer(tweepy.StreamListener):
                 query = graph_query_parse(status)
                 graph_df, average = graph_query_creation(query)
                 graph_name = graph_creation(graph_df, query, average)
-                self.api.update_with_media(graph_name, status='@{}'.format(username),
+                self.api.update_with_media(graph_name,
+                                           status='@{}'.format(username),
                                            in_reply_to_status_id=status_id)
                 os.remove(graph_name)
 
@@ -576,7 +586,6 @@ def main():
             wait_time += 60
             if wait_time > 500:
                 wait_time = 0
-
 
 
 if __name__ == '__main__':
