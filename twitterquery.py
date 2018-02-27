@@ -7,8 +7,9 @@ import random
 import time
 import os
 from sqlalchemy import create_engine, and_, or_
-from sqlalchemy.sql import func, select
+from sqlalchemy.sql import func, select, cast
 from sqlalchemy.schema import MetaData
+from sqlalchemy.types import String
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -307,6 +308,32 @@ def graph_query_parse(query_text):
         parsed_query.append(query_text[6])
         # append database
         parsed_query.append(query_text[3])
+    elif 'goalie' in query_text:
+        if 'vs.' in query_text:
+            # append first player name
+            parsed_query.append('{}.{}'.format(query_text[1],
+                                               query_text[2]).upper())
+            # append second player name
+            parsed_query.append('{}.{}'.format(query_text[4],
+                                               query_text[5]).upper())
+            # append stat
+            parsed_query.append(query_text[8].lower())
+            # append year
+            parsed_query.append(query_text[9])
+            # append database
+            parsed_query.append(query_text[6])
+        else:
+            # append player name
+            parsed_query.append('{}.{}'.format(query_text[1],
+                                               query_text[2]).upper())
+            # append stat
+            parsed_query.append(query_text[5].lower())
+            # append year
+            parsed_query.append(query_text[6])
+            # append database
+            parsed_query.append(query_text[3])
+
+
 
     '''
     This part checks for the 5v5 and adjusted flags and then adds them onto
@@ -361,12 +388,37 @@ def graph_query_creation(query_list):
                         where(and_(database.c.player == query_list[0],
                               database.c.season ==
                               format_season(query_list[-2])))
-        else:
+        elif query_list[-1][:4] == 'team':
             sql_query = select([database.c.team, database.c.game_date,
                                database.c[query_list[1]]]).\
                         where(and_(database.c.team == query_list[0],
                               database.c.season ==
                               format_season(query_list[-2])))
+        else:
+            sql_query = select([database.c.goalie, database.c.game_date,
+                               database.c[query_list[1]]]).\
+                        where(and_(database.c.goalie == query_list[0],
+                              database.c.season ==
+                              format_season(query_list[-2]),
+                              cast(database.c[query_list[1]], String) != 'NaN')
+                              )
+            print(sql_query)
+            average = conn.execute(select
+                                   ([func.avg(database.c[query_list[1]])]).
+                                   where(and_(database.c.season ==
+                                         format_season(query_list[-2]),
+                                         cast(database.c[query_list[1]],
+                                              String) != 'NaN')
+                                         ))
+            average = list(average)
+            print(average)
+            average = '{}'.format(str(average).
+                                  replace('(', '').replace(',', '')
+                                  .replace(')', '').replace("'", '')
+                                  .replace('Decimal', '').replace('[', '').
+                                  replace(']', ''))
+            print(average)
+            average = float(average)
         if query_list[1] in rate_stats:
             average = conn.execute(select
                                    ([func.avg(database.c[query_list[1]])]).
@@ -391,13 +443,38 @@ def graph_query_creation(query_list):
                               database.c.player == query_list[1]),
                               database.c.season ==
                               format_season(query_list[-2])))
-        else:
+        elif query_list[-1][:4] == 'team':
             sql_query = select([database.c.team, database.c.game_date,
                                database.c[query_list[2]]]).\
                         where(and_(or_(database.c.team == query_list[0],
                               database.c.team == query_list[1]),
                               database.c.season ==
                               format_season(query_list[-2])))
+        else:
+            sql_query = select([database.c.goalie, database.c.game_date,
+                               database.c[query_list[2]]]).\
+                        where(and_(or_(database.c.goalie == query_list[0],
+                              database.c.goalie == query_list[1]),
+                              database.c.season ==
+                              format_season(query_list[-2]),
+                              cast(database.c[query_list[2]], String) != 'NaN')
+                              )
+            print(sql_query)
+            average = conn.execute(select
+                                   ([func.avg(database.c[query_list[2]])]).
+                                   where(and_(database.c.season ==
+                                         format_season(query_list[-2]),
+                                         cast(database.c[query_list[2]],
+                                              String) != 'NaN')
+                                         ))
+            average = list(average)
+            print(average)
+            average = '{}'.format(str(average).
+                                  replace('(', '').replace(',', '')
+                                  .replace(')', '').replace("'", '')
+                                  .replace('Decimal', '').replace('[', '').
+                                  replace(']', ''))
+            print(average)
         if query_list[2] in rate_stats:
             average = conn.execute(select
                                    ([func.avg(database.c[query_list[2]])]).
@@ -436,7 +513,7 @@ def graph_creation(dataframe, graph_query, average):
                 queried, and the 5 game moving average of that statistic.
 
     Outputs:
-    file_name - this is a .png file of the graph created by plotting the moving
+    file_name - this is :a .png file of the graph created by plotting the moving
                 average of the user requested statistic against the dates
                 of the games played. This image file will then be uploaded
                 to the API and attached to the replying tweet by the bot
@@ -446,7 +523,7 @@ def graph_creation(dataframe, graph_query, average):
     rate_stats = ['cf60', 'ff60', 'fa60', 'ca60', 'ixg', 'ixg60', 'xgf60',
                   'xga60', 'g60', 'a160', 'gf60', 'ga60']
 
-    print(dataframe.head())
+    print(dataframe.tail(20))
     grouped = dataframe.groupby(dataframe.columns[0])
     fig, ax = plt.subplots(figsize=(16, 6))
 
@@ -467,8 +544,9 @@ def graph_creation(dataframe, graph_query, average):
     ax.spines['top'].set_visible(False)
     if dataframe.columns[2] in percent_stats:
         plt.axhline(y=50, color='k', linestyle='--')
-    elif dataframe.columns[2] in rate_stats:
+    else:
         plt.axhline(y=average, color='k', linestyle='--')
+        plt.autoscale()
     ax.grid(alpha=.5)
     file_name = 'plot{}.png'.format(str(random.randint(1, 1000)))
     fig.savefig(file_name)
@@ -512,6 +590,7 @@ class BotStreamer(tweepy.StreamListener):
         status = status.split(' ')
         if text_error_check(status):
             return
+        print(status)
 
         if username == 'CJTDevil':
             try:
@@ -529,8 +608,11 @@ class BotStreamer(tweepy.StreamListener):
         try:
             if 'graph' in status:
                 status = three_name_parser(status)
+                print(status)
                 query = graph_query_parse(status)
+                print(query)
                 graph_df, average = graph_query_creation(query)
+                print(average)
                 graph_name = graph_creation(graph_df, query, average)
                 self.api.update_with_media(graph_name,
                                            status='@{}'.format(username),
@@ -567,6 +649,7 @@ def main():
     # are stored in the contents of the function can be found in the
     # keylesstwitter.py file on github
     twitter_keys = twitterpost.get_twitter_keys(sys.argv[1])
+    print(twitter_keys['Consumer Key'])
     auth = tweepy.OAuthHandler(twitter_keys['Consumer Key'],
                                twitter_keys['Consumer Secret Key'])
     auth.set_access_token(twitter_keys['Access Key'],
@@ -580,7 +663,7 @@ def main():
     wait_time = 100
     while True:
         try:
-            stream.filter(track=['@barloweanalytic'])
+            stream.filter(track=['@testbot887'])
         except Exception as ex:
             time.sleep(wait_time)
             wait_time += 60
