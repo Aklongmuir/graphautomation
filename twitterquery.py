@@ -466,37 +466,23 @@ def graph_query_creation(query_list):
                               format_season(query_list[-2]),
                               cast(database.c[query_list[1]], String) != 'NaN')
                               )
-            print(sql_query)
-            average = conn.execute(select
-                                   ([func.avg(database.c[query_list[1]])]).
-                                   where(and_(database.c.season ==
-                                         format_season(query_list[-2]),
-                                         cast(database.c[query_list[1]],
-                                              String) != 'NaN')
-                                         ))
-            average = list(average)
-            print(average)
-            average = '{}'.format(str(average).
-                                  replace('(', '').replace(',', '')
-                                  .replace(')', '').replace("'", '')
-                                  .replace('Decimal', '').replace('[', '').
-                                  replace(']', ''))
-            print(average)
-            average = float(average)
-        if query_list[1] in rate_stats:
-            average = conn.execute(select
-                                   ([func.avg(database.c[query_list[1]])]).
-                                   where(database.c.season ==
-                                         format_season(query_list[-2])))
-            average = list(average)
-            print(average)
-            average = '{}'.format(str(average).
-                                  replace('(', '').replace(',', '')
-                                  .replace(')', '').replace("'", '')
-                                  .replace('Decimal', '').replace('[', '').
-                                  replace(']', ''))
-            print(average)
-            average = float(average)
+        print(sql_query)
+        average = conn.execute(select
+                               ([func.avg(database.c[query_list[1]])]).
+                               where(and_(database.c.season ==
+                                     format_season(query_list[-2]),
+                                     cast(database.c[query_list[1]],
+                                          String) != 'NaN')
+                                     ))
+        average = list(average)
+        print(average)
+        average = '{}'.format(str(average).
+                              replace('(', '').replace(',', '')
+                              .replace(')', '').replace("'", '')
+                              .replace('Decimal', '').replace('[', '').
+                              replace(']', ''))
+        print(average)
+        average = float(average)
 
     elif len(query_list) == 5:
         database = metadata.tables[query_list[-1]]
@@ -523,40 +509,30 @@ def graph_query_creation(query_list):
                               format_season(query_list[-2]),
                               cast(database.c[query_list[2]], String) != 'NaN')
                               )
-            print(sql_query)
-            average = conn.execute(select
-                                   ([func.avg(database.c[query_list[2]])]).
-                                   where(and_(database.c.season ==
-                                         format_season(query_list[-2]),
-                                         cast(database.c[query_list[2]],
-                                              String) != 'NaN')
-                                         ))
-            average = list(average)
-            print(average)
-            average = '{}'.format(str(average).
-                                  replace('(', '').replace(',', '')
-                                  .replace(')', '').replace("'", '')
-                                  .replace('Decimal', '').replace('[', '').
-                                  replace(']', ''))
-            print(average)
-            average = float(average)
-        if query_list[2] in rate_stats:
-            average = conn.execute(select
-                                   ([func.avg(database.c[query_list[2]])]).
-                                   where(database.c.season ==
-                                         format_season(query_list[-2])))
-            average = list(average)
-            print(average)
-            average = '{}'.format(str(average)
-                                  .replace('(', '')
-                                  .replace(',', '')
-                                  .replace(')', '')
-                                  .replace("'", '')
-                                  .replace('Decimal', '')
-                                  .replace('[', '').
-                                  replace(']', ''))
-            print(average)
-            average = float(average)
+        print(sql_query)
+        average = conn.execute(select
+                               ([func.avg(database.c[query_list[2]])]).
+                               where(and_(database.c.season ==
+                                     format_season(query_list[-2]),
+                                     cast(database.c[query_list[2]],
+                                          String) != 'NaN')
+                                     ))
+        average = conn.execute(select
+                               ([func.avg(database.c[query_list[2]])]).
+                               where(database.c.season ==
+                                     format_season(query_list[-2])))
+        average = list(average)
+        print(average)
+        average = '{}'.format(str(average)
+                              .replace('(', '')
+                              .replace(',', '')
+                              .replace(')', '')
+                              .replace("'", '')
+                              .replace('Decimal', '')
+                              .replace('[', '').
+                              replace(']', ''))
+        print(average)
+        average = float(average)
 
     query_df = pd.read_sql_query(sql_query, conn)
     query_df = query_df.sort_values('game_date')
