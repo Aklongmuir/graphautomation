@@ -475,6 +475,7 @@ def graph_query_creation(query_list):
                                   .replace('Decimal', '').replace('[', '').
                                   replace(']', ''))
             print(average)
+            average = float(average)
         if query_list[2] in rate_stats:
             average = conn.execute(select
                                    ([func.avg(database.c[query_list[2]])]).
@@ -513,23 +514,25 @@ def graph_creation(dataframe, graph_query, average):
                 queried, and the 5 game moving average of that statistic.
 
     Outputs:
-    file_name - this is :a .png file of the graph created by plotting the moving
-                average of the user requested statistic against the dates
-                of the games played. This image file will then be uploaded
-                to the API and attached to the replying tweet by the bot
+    file_name - this is :a .png file of the graph created by plotting the
+                moving average of the user requested statistic against the
+                dates of the games played. This image file will then be
+                uploaded to the API and attached to the replying tweet by
+                the bot
     '''
 
     percent_stats = ['cf_percent', 'ff_percent', 'xgf_percent']
-    rate_stats = ['cf60', 'ff60', 'fa60', 'ca60', 'ixg', 'ixg60', 'xgf60',
-                  'xga60', 'g60', 'a160', 'gf60', 'ga60']
-
-    print(dataframe.tail(20))
+    # group the dataframe by player if there is only one it just
+    # the same dataframe as we passed to it
     grouped = dataframe.groupby(dataframe.columns[0])
+    # create the base plot
     fig, ax = plt.subplots(figsize=(16, 6))
 
+    # plot the moving averages of each player/players
     for key, group in grouped:
         group.plot(x='game_date', y='moving_avg', label=key, ax=ax)
 
+    # create labels for the graph
     if len(graph_query) == 5:
         plt.title('{} & {} {} {} 5 game rolling average by @BarloweAnalytic'
                   .format(graph_query[0], graph_query[1], graph_query[3],
@@ -539,14 +542,19 @@ def graph_creation(dataframe, graph_query, average):
                   .format(graph_query[0], graph_query[2],
                           dataframe.columns[2]))
 
+    # label the y axis
     plt.ylabel(dataframe.columns[2])
+    # remove right and upper graph boundaries
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
+    # If the graph is of cf%, ff%, gf%, or xgf% add line for 50% mark for
+    # everything else add line for league average
     if dataframe.columns[2] in percent_stats:
         plt.axhline(y=50, color='k', linestyle='--')
     else:
-        plt.axhline(y=average, color='k', linestyle='--')
-        plt.autoscale()
+        plt.axhline(y=average, color='k', linestyle='--',
+                    label='NHL avg: {}'.format(str(average)[:6]))
+        plt.legend()
     ax.grid(alpha=.5)
     file_name = 'plot{}.png'.format(str(random.randint(1, 1000)))
     fig.savefig(file_name)
@@ -590,7 +598,6 @@ class BotStreamer(tweepy.StreamListener):
         status = status.split(' ')
         if text_error_check(status):
             return
-        print(status)
 
         if username == 'CJTDevil':
             try:
@@ -608,11 +615,8 @@ class BotStreamer(tweepy.StreamListener):
         try:
             if 'graph' in status:
                 status = three_name_parser(status)
-                print(status)
                 query = graph_query_parse(status)
-                print(query)
                 graph_df, average = graph_query_creation(query)
-                print(average)
                 graph_name = graph_creation(graph_df, query, average)
                 self.api.update_with_media(graph_name,
                                            status='@{}'.format(username),
