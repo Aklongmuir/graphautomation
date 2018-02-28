@@ -9,7 +9,7 @@ import os
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.sql import func, select, cast
 from sqlalchemy.schema import MetaData
-from sqlalchemy.types import String
+from sqlalchemy.types import String, Float
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -73,7 +73,7 @@ def query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-1])))\
                         .group_by(database.c.player)
-        else:
+        elif query_list[1][0:6] == 'team':
             sql_query = select([database.c.team,
                                (func.sum(database.c.cf) /
                                 (func.sum(database.c.ca) +
@@ -85,6 +85,21 @@ def query_creation(query_list):
                                      database.c.season ==
                                      format_season(query_list[-1])))\
                                .group_by(database.c.team)
+        else:
+            sql_query = select([database.c.goalie,
+                               (1 - cast(func.sum(database.c.ga), Float) /
+                                cast(func.sum(database.c.sa), Float)),
+                               (1 - cast(func.sum(database.c.ldga), Float) /
+                                cast(func.sum(database.c.lda), Float)),
+                               (1 - cast(func.sum(database.c.mdga), Float) /
+                                cast(func.sum(database.c.mda), Float)),
+                               (1 - cast(func.sum(database.c.hdga), Float) /
+                                cast(func.sum(database.c.hda), Float))]).\
+                              where(and_(database.c.goalie == query_list[0],
+                                    database.c.season ==
+                                    format_season(query_list[-1])))\
+                              .group_by(database.c.goalie)
+
     elif len(query_list) == 4:
         database = metadata.tables[query_list[2]]
         if query_list[2][0:6] == 'player':
@@ -101,7 +116,7 @@ def query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-1]))).\
                         group_by(database.c.player)
-        else:
+        elif query_list[2][0:4] == 'team':
             sql_query = select([database.c.team,
                                (func.sum(database.c.cf) /
                                 (func.sum(database.c.ca) +
@@ -114,14 +129,33 @@ def query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-1]))).\
                         group_by(database.c.team)
+        else:
+            sql_query = select([database.c.goalie,
+                               (1 - cast(func.sum(database.c.ga), Float) /
+                                cast(func.sum(database.c.sa), Float)),
+                               (1 - cast(func.sum(database.c.ldga), Float) /
+                                cast(func.sum(database.c.lda), Float)),
+                               (1 - cast(func.sum(database.c.mdga), Float) /
+                                cast(func.sum(database.c.mda), Float)),
+                               (1 - cast(func.sum(database.c.hdga), Float) /
+                                cast(func.sum(database.c.hda), Float))]).\
+                        where(and_(or_(database.c.goalie == query_list[0],
+                              database.c.goalie == query_list[1]),
+                              database.c.season ==
+                              format_season(query_list[-1]))).\
+                        group_by(database.c.goalie)
 
     results = conn.execute(sql_query)
-    print(results)
 
     results = list(map(list, results))
+    print(results)
     for x in results:
-        rounded = [round(y, 2) for y in x[1:]]
-        x[1:] = rounded
+        if query_list[1][:6] == 'goalie' or query_list[2][:6] == 'goalie':
+            rounded = [round(y, 3) for y in x[1:]]
+            x[1:] = rounded
+        else:
+            rounded = [round(y, 2) for y in x[1:]]
+            x[1:] = rounded
 
     data = []
     for row in results:
@@ -174,6 +208,23 @@ def query_parse(text_list):
         new_query.append(text_list[4].lower())
         # append year
         new_query.append(text_list[5])
+    elif 'goaliestats' in text_list:
+        if 'vs.' in text_list:
+            # append first player name
+            new_query.append('{}.{}'.format(text_list[1], text_list[2]).upper())
+            # append second player name
+            new_query.append('{}.{}'.format(text_list[4], text_list[5]).upper())
+            # append database
+            new_query.append(text_list[6].lower())
+            # append year
+            new_query.append(text_list[7])
+        else:
+            # append player name
+            new_query.append('{}.{}'.format(text_list[1], text_list[2]).upper())
+            # append database
+            new_query.append(text_list[3].lower())
+            # append year
+            new_query.append(text_list[4])
 
     if 'vs.' in text_list:
         if '-adj' in text_list and '-5v5' in text_list:
@@ -227,7 +278,13 @@ def twitter_text_parser(data_text, status_text, season):
         else:
             return data_list.split(' ')
 
-    twitter_string = '{}\n'.format(season)
+    stat_conditions = ''
+    if '-5v5' in status_text:
+        stat_conditions += '5v5 '
+    if '-adj' in status_text:
+        stat_conditions += 'adj'
+
+    twitter_string = '{} {}\n'.format(season, stat_conditions)
     if 'playerstats' in status_text:
         stats = ['CF%', 'xGF%', 'ixG']
         for data in data_text:
@@ -237,11 +294,20 @@ def twitter_text_parser(data_text, status_text, season):
 
             twitter_string += '\n'.join(data_list)
             twitter_string += '\n'
-    else:
+    elif 'teamstats' in status_text:
         stats = ['CF%', 'xGF%']
         for data in data_text:
             data_list = data.split(' ')
             for stat, x in zip(stats, range(len(data_list[0:2]))):
+                data_list[x+1] = '{}: {}'.format(stat, data_list[x+1])
+
+            twitter_string += '\n'.join(data_list)
+            twitter_string += '\n'
+    else:
+        stats = ['SV%', 'LDSV%', 'MDSV%', 'HDSV%']
+        for data in data_text:
+            data_list = three_name_adjuster(data)
+            for stat, x in zip(stats, range(len(data_list[0:4]))):
                 data_list[x+1] = '{}: {}'.format(stat, data_list[x+1])
 
             twitter_string += '\n'.join(data_list)
@@ -332,8 +398,6 @@ def graph_query_parse(query_text):
             parsed_query.append(query_text[6])
             # append database
             parsed_query.append(query_text[3])
-
-
 
     '''
     This part checks for the 5v5 and adjusted flags and then adds them onto
@@ -503,7 +567,7 @@ def graph_query_creation(query_list):
     return query_df, average
 
 
-def graph_creation(dataframe, graph_query, average):
+def graph_creation(dataframe, graph_query, average, status_text):
     '''
     This function takes a dataframe and plots it based on the groups in either
     the player or team column depending on the orginal query from the user
@@ -532,15 +596,21 @@ def graph_creation(dataframe, graph_query, average):
     for key, group in grouped:
         group.plot(x='game_date', y='moving_avg', label=key, ax=ax)
 
+# add this to let people know if graph is adjusted and 5v5
+    stat_conditions = ''
+    if '-5v5' in status_text:
+        stat_conditions += '5v5 '
+    if '-adj' in status_text:
+        stat_conditions += 'adj'
     # create labels for the graph
     if len(graph_query) == 5:
-        plt.title('{} & {} {} {} 5 game rolling average by @BarloweAnalytic'
+        plt.title('{} & {} {} {} 5 game rolling average {} by @BarloweAnalytic'
                   .format(graph_query[0], graph_query[1], graph_query[3],
-                          dataframe.columns[2]))
+                          dataframe.columns[2], stat_conditions))
     else:
-        plt.title('{} {} {} 5 game rolling average by @BarloweAnalytic'
+        plt.title('{} {} {} 5 game rolling average {} by @BarloweAnalytic'
                   .format(graph_query[0], graph_query[2],
-                          dataframe.columns[2]))
+                          dataframe.columns[2], stat_conditions))
 
     # label the y axis
     plt.ylabel(dataframe.columns[2])
@@ -617,7 +687,7 @@ class BotStreamer(tweepy.StreamListener):
                 status = three_name_parser(status)
                 query = graph_query_parse(status)
                 graph_df, average = graph_query_creation(query)
-                graph_name = graph_creation(graph_df, query, average)
+                graph_name = graph_creation(graph_df, query, average, status)
                 self.api.update_with_media(graph_name,
                                            status='@{}'.format(username),
                                            in_reply_to_status_id=status_id)
