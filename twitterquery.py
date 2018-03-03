@@ -39,6 +39,91 @@ def text_error_check(text):
         return True
 
 
+def gsaa_creation(season, player, database, conn):
+    '''
+    Function creates a data frame of adjusted GSAA for the stats requested
+    that can then be used to graph over time or sum to get a final value for
+    the summary stat function
+
+    Inputs:
+    season - string consisting of the season averages to be calculated
+    database - SLQ Alchemy object to query
+
+    Outputs:
+    gsaa_df - dataframe containing player's adj.gsaa30 value
+    '''
+
+    gsaa_lg_avg_query = select([database.c.game_date, func.sum(database.c.hdga).label('hdga'),
+                                func.sum(database.c.hda).label('hda'), func.sum(database.c.mdga).label('mdga'),
+                                func.sum(database.c.mda).label('mda'),
+                                func.sum(database.c.ldga).label('ldga'),
+                                func.sum(database.c.lda).label('lda')]).\
+                        where(database.c.season == season).\
+                        group_by(database.c.game_date)
+
+    gsaa_avg_df = pd.read_sql_query(gsaa_lg_avg_query, conn)
+    print(gsaa_avg_df.head())
+    gsaa_avg_df = gsaa_avg_df.sort_values('game_date')
+    print(gsaa_avg_df.head())
+    gsaa_avg_df['hdga_cum'] = gsaa_avg_df['hdga'].cumsum(axis=0)
+    gsaa_avg_df['hda_cum'] = gsaa_avg_df['hda'].cumsum(axis=0)
+    gsaa_avg_df['mdga_cum'] = gsaa_avg_df['mdga'].cumsum(axis=0)
+    gsaa_avg_df['mda_cum'] = gsaa_avg_df['mda'].cumsum(axis=0)
+    gsaa_avg_df['ldga_cum'] = gsaa_avg_df['ldga'].cumsum(axis=0)
+    gsaa_avg_df['lda_cum'] = gsaa_avg_df['lda'].cumsum(axis=0)
+    print(gsaa_avg_df.head())
+    gsaa_avg_df['run_hdsv_per'] = 1 - (gsaa_avg_df['hdga_cum'] /
+                                       gsaa_avg_df['hda_cum'])
+
+    gsaa_avg_df['run_mdsv_per'] = 1 - (gsaa_avg_df['mdga_cum'] /
+                                       gsaa_avg_df['mda_cum'])
+    gsaa_avg_df['run_ldsv_per'] = 1 - (gsaa_avg_df['ldga_cum'] /
+                                       gsaa_avg_df['lda_cum'])
+
+    print(gsaa_avg_df.head())
+    gsaa_avg_df.game_date = pd.to_datetime(gsaa_avg_df.game_date)
+    if len(player) == 1:
+        goalie_query = select([database.c.goalie, database.c.game_date, database.c.hdga,
+                               database.c.hda, database.c.mdga, database.c.mda,
+                               database.c.ldga, database.c.lda]).\
+                            where(and_(database.c.season == season,
+                                database.c.goalie == player[0]))
+    else:
+        goalie_query = select([database.c.goalie, database.c.game_date, database.c.hdga,
+                               database.c.hda, database.c.mdga, database.c.mda,
+                               database.c.ldga, database.c.lda]).\
+                            where(and_(database.c.season == season,
+                                or_(database.c.goalie == player[0], database.c.goalie == player[1])))
+
+    goalie_query_df = pd.read_sql(goalie_query, conn)
+    print(goalie_query_df.head())
+    goalie_query_df.game_date = pd.to_datetime(goalie_query_df.game_date)
+
+    goalie_query_df = goalie_query_df.merge(gsaa_avg_df[['game_date', 'run_hdsv_per', 'run_mdsv_per', 'run_ldsv_per']], on='game_date')
+    print(goalie_query_df.head())
+    goalie_query_df['adj_gsaa'] = (goalie_query_df['hda'] * (1-goalie_query_df['run_hdsv_per'])
+                                - goalie_query_df['hdga']) + \
+                               (goalie_query_df['mda'] * (1-goalie_query_df['run_mdsv_per'])
+                                - goalie_query_df['mdga']) + \
+                               (goalie_query_df['lda'] * (1-goalie_query_df['run_ldsv_per'])
+                                - goalie_query_df['ldga'])
+
+    goalie_query_df['adj_gsaa30'] = (goalie_query_df['adj_gsaa'] /
+                                  (goalie_query_df['hda'] + goalie_query_df['hdga'] +
+                                   goalie_query_df['mda'] + goalie_query_df['mdga'] +
+                                   goalie_query_df['lda'] + goalie_query_df['ldga'])
+                                  * 30)
+
+    goalie_query_df = goalie_query_df[['goalie', 'game_date', 'adj_gsaa', 'adj_gsaa30']]
+    goalie_query_df = goalie_query_df.sort_values('game_date')
+
+    goalie_query_df['moving_avg'] = goalie_query_df.groupby(goalie_query_df.columns[0])\
+            [goalie_query_df.columns[2]].rolling(5).mean().reset_index(0, drop=True)
+
+    print(goalie_query_df.head())
+
+    return goalie_query_df
+
 def query_creation(query_list):
     '''
     This function creates an sql query with SQL alchemy and then parses the
@@ -99,6 +184,9 @@ def query_creation(query_list):
                                     database.c.season ==
                                     format_season(query_list[-1])))\
                               .group_by(database.c.goalie)
+            gsaa_df = gsaa_creation(format_season(query_list[-1]), [query_list[0]],
+                                    database, conn)
+            gsaa_df = gsaa_df.groupby(['goalie'])['adj_gsaa'].sum()
 
     elif len(query_list) == 4:
         database = metadata.tables[query_list[2]]
@@ -144,6 +232,11 @@ def query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-1]))).\
                         group_by(database.c.goalie)
+            gsaa_df = gsaa_creation(format_season(query_list[-1]),
+                                    [query_list[0], query_list[1]],
+                                    database, conn)
+            gsaa_df = gsaa_df.groupby(['goalie'])['adj_gsaa'].sum()
+
 
     results = conn.execute(sql_query)
 
@@ -161,6 +254,12 @@ def query_creation(query_list):
     for row in results:
         data.append('{}'.format(str(row).replace('[', '').replace(',', '')
                     .replace(']', '').replace("'", '').replace('Decimal', '')))
+
+    if query_list[1][:6] == 'goalie':
+        data[0] += ' {}'.format(str(gsaa_df.loc[query_list[0]])[:5])
+    elif query_list[2][:6] == 'goalie':
+        data[0] += ' {}'.format(str(gsaa_df.loc[query_list[1]])[:5])
+        data[1] += ' {}'.format(str(gsaa_df.loc[query_list[0]])[:5])
     conn.close()
     print(data)
     return data
@@ -304,10 +403,10 @@ def twitter_text_parser(data_text, status_text, season):
             twitter_string += '\n'.join(data_list)
             twitter_string += '\n'
     else:
-        stats = ['SV%', 'LDSV%', 'MDSV%', 'HDSV%']
+        stats = ['SV%', 'LDSV%', 'MDSV%', 'HDSV%', 'adjGSAA']
         for data in data_text:
             data_list = three_name_adjuster(data)
-            for stat, x in zip(stats, range(len(data_list[0:4]))):
+            for stat, x in zip(stats, range(len(data_list[0:5]))):
                 data_list[x+1] = '{}: {}'.format(stat, data_list[x+1])
 
             twitter_string += '\n'.join(data_list)
@@ -442,7 +541,6 @@ def graph_query_creation(query_list):
     conn = engine.connect()
     metadata = MetaData()
     metadata.reflect(bind=engine)
-    average = 50
 
     if len(query_list) == 4:
         database = metadata.tables[query_list[3]]
@@ -459,30 +557,42 @@ def graph_query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-2])))
         else:
-            sql_query = select([database.c.goalie, database.c.game_date,
-                               database.c[query_list[1]]]).\
-                        where(and_(database.c.goalie == query_list[0],
-                              database.c.season ==
-                              format_season(query_list[-2]),
-                              cast(database.c[query_list[1]], String) != 'NaN')
-                              )
-        print(sql_query)
-        average = conn.execute(select
-                               ([func.avg(database.c[query_list[1]])]).
-                               where(and_(database.c.season ==
-                                     format_season(query_list[-2]),
-                                     cast(database.c[query_list[1]],
-                                          String) != 'NaN')
-                                     ))
-        average = list(average)
-        print(average)
-        average = '{}'.format(str(average).
-                              replace('(', '').replace(',', '')
-                              .replace(')', '').replace("'", '')
-                              .replace('Decimal', '').replace('[', '').
-                              replace(']', ''))
-        print(average)
-        average = float(average)
+            if query_list[1] != 'gsaa':
+                sql_query = select([database.c.goalie, database.c.game_date,
+                                   database.c[query_list[1]]]).\
+                            where(and_(database.c.goalie == query_list[0],
+                                  database.c.season ==
+                                  format_season(query_list[-2]),
+                                  cast(database.c[query_list[1]], String) != 'NaN')
+                                  )
+                print(sql_query)
+                average = conn.execute(select
+                                       ([func.avg(database.c[query_list[1]])]).
+                                       where(and_(database.c.season ==
+                                             format_season(query_list[-2]),
+                                             cast(database.c[query_list[1]],
+                                                  String) != 'NaN')
+                                             ))
+                average = list(average)
+                print(average)
+                average = '{}'.format(str(average).
+                                      replace('(', '').replace(',', '')
+                                      .replace(')', '').replace("'", '')
+                                      .replace('Decimal', '').replace('[', '').
+                                      replace(']', ''))
+                print(average)
+                average = float(average)
+                query_df = pd.read_sql_query(sql_query, conn)
+                query_df = query_df.sort_values('game_date')
+
+                query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
+                        [query_df.columns[2]].rolling(5).mean().reset_index(0, drop=True)
+            else:
+                print(query_list)
+                query_df =  gsaa_creation(format_season(query_list[-2]),
+                                        [query_list[0]],
+                                        database, conn)
+                average = 0
 
     elif len(query_list) == 5:
         database = metadata.tables[query_list[-1]]
@@ -501,26 +611,65 @@ def graph_query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-2])))
         else:
-            sql_query = select([database.c.goalie, database.c.game_date,
-                               database.c[query_list[2]]]).\
-                        where(and_(or_(database.c.goalie == query_list[0],
-                              database.c.goalie == query_list[1]),
-                              database.c.season ==
-                              format_season(query_list[-2]),
-                              cast(database.c[query_list[2]], String) != 'NaN')
-                              )
-        print(sql_query)
-        average = conn.execute(select
-                               ([func.avg(database.c[query_list[2]])]).
-                               where(and_(database.c.season ==
-                                     format_season(query_list[-2]),
-                                     cast(database.c[query_list[2]],
-                                          String) != 'NaN')
-                                     ))
-        average = conn.execute(select
-                               ([func.avg(database.c[query_list[2]])]).
-                               where(database.c.season ==
-                                     format_season(query_list[-2])))
+            if query_list[2] != 'gsaa':
+                sql_query = select([database.c.goalie, database.c.game_date,
+                                   database.c[query_list[2]]]).\
+                            where(and_(or_(database.c.goalie == query_list[0],
+                                  database.c.goalie == query_list[1]),
+                                  database.c.season ==
+                                  format_season(query_list[-2]),
+                                  cast(database.c[query_list[2]], String) != 'NaN')
+                                  )
+                print(sql_query)
+                average = conn.execute(select
+                                       ([func.avg(database.c[query_list[2]])]).
+                                       where(and_(database.c.season ==
+                                             format_season(query_list[-2]),
+                                             cast(database.c[query_list[2]],
+                                                  String) != 'NaN')
+                                             ))
+                average = list(average)
+                print(average)
+                average = '{}'.format(str(average)
+                                      .replace('(', '')
+                                      .replace(',', '')
+                                      .replace(')', '')
+                                      .replace("'", '')
+                                      .replace('Decimal', '')
+                                      .replace('[', '').
+                                      replace(']', ''))
+                print(average)
+                average = float(average)
+
+                query_df = pd.read_sql_query(sql_query, conn)
+                query_df = query_df.sort_values('game_date')
+
+                query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
+                        [query_df.columns[2]].rolling(5).mean().reset_index(0, drop=True)
+            else:
+                query_df = gsaa_df = gsaa_creation(format_season(query_list[-2]),
+                                        [query_list[0], query_list[1]],
+                                        database, conn)
+                average = 0
+
+
+    if query_list[-1][:6] != 'goalie':
+        if len(query_list) == 5:
+            average = conn.execute(select
+                                   ([func.avg(database.c[query_list[2]])]).
+                                   where(and_(database.c.season ==
+                                         format_season(query_list[-2]),
+                                         cast(database.c[query_list[2]],
+                                              String) != 'NaN')
+                                         ))
+        else:
+            average = conn.execute(select
+                                   ([func.avg(database.c[query_list[1]])]).
+                                   where(and_(database.c.season ==
+                                         format_season(query_list[-2]),
+                                         cast(database.c[query_list[1]],
+                                              String) != 'NaN')
+                                         ))
         average = list(average)
         print(average)
         average = '{}'.format(str(average)
@@ -534,11 +683,11 @@ def graph_query_creation(query_list):
         print(average)
         average = float(average)
 
-    query_df = pd.read_sql_query(sql_query, conn)
-    query_df = query_df.sort_values('game_date')
+        query_df = pd.read_sql_query(sql_query, conn)
+        query_df = query_df.sort_values('game_date')
 
-    query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
-            [query_df.columns[2]].rolling(5).mean().reset_index(0, drop=True)
+        query_df['moving_avg'] = query_df.groupby(query_df.columns[0])\
+                [query_df.columns[2]].rolling(5).mean().reset_index(0, drop=True)
 
     return query_df, average
 
