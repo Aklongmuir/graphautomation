@@ -761,7 +761,7 @@ def graph_creation(dataframe, graph_query, average, status_text):
 def three_name_parser(status_list):
     new_list = []
     status_list = list(map(str.lower, status_list))
-    if ' ek ' in status_list or ' van ' in status_list:
+    if ' ek ' in status_list or ' van ' in status_list or 'di' in status_list:
         new_list.extend(status_list[:2])
         new_list.append('{} {}'.format(status_list[2], status_list[3]))
         new_list.extend(status_list[4:])
