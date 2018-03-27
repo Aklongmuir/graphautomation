@@ -158,7 +158,7 @@ def query_creation(query_list):
                               database.c.season ==
                               format_season(query_list[-1])))\
                         .group_by(database.c.player)
-        elif query_list[1][0:6] == 'team':
+        elif query_list[1][0:4] == 'team':
             sql_query = select([database.c.team,
                                (func.sum(database.c.cf) /
                                 (func.sum(database.c.ca) +
@@ -863,7 +863,7 @@ def main():
     wait_time = 100
     while True:
         try:
-            stream.filter(track=['@testbot887'])
+            stream.filter(track=['@barloweanalytic'])
         except Exception as ex:
             time.sleep(wait_time)
             wait_time += 60
