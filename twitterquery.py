@@ -242,7 +242,6 @@ def query_creation(query_list):
 
     results = list(map(list, results))
     print(results)
-    print(gsaa_df.head())
     for x in results:
         if query_list[1][:6] == 'goalie' or query_list[2][:6] == 'goalie':
             rounded = [round(y, 3) for y in x[1:]]
