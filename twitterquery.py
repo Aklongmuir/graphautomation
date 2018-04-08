@@ -814,19 +814,6 @@ class BotStreamer(tweepy.StreamListener):
         if text_error_check(status):
             return
 
-        if username == 'CJTDevil':
-            try:
-                self.api.update_status(status='@{}\n You have insulted'
-                                       'my mighty creator the God Emperor'
-                                       'before you can use the bot again you'
-                                       'must repent for choosing me over'
-                                       'him and seek supplication for your'
-                                       'sins.'.format(username),
-                                       in_reply_to_status_id=status_id)
-            except Exception as ex:
-                print(ex)
-                return
-
         try:
             if 'graph' in status:
                 status = three_name_parser(status)
