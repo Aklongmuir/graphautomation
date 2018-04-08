@@ -5396,6 +5396,9 @@ for(game_number in games[[1]]){
     goalie_stats_5v5$db_key <- paste0(goalie_stats_5v5$goalie,
                                       goalie_stats_5v5$game_date,
                                       goalie_stats_5v5$game_id)
+    
+    goalie_stats_all_sits$session <- first(pbp_df$session)
+    goalie_stats_5v5$session <- first(pbp_df$session)
 
     ############################################################################
     ##Saves all graphs to a folder designated by game number and adds the full##
