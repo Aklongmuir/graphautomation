@@ -58,7 +58,8 @@ def gsaa_creation(season, player, database, conn):
                                 func.sum(database.c.mda).label('mda'),
                                 func.sum(database.c.ldga).label('ldga'),
                                 func.sum(database.c.lda).label('lda')]).\
-                        where(database.c.season == season).\
+                        where(and_(database.c.season == season,
+                                   database.c.session == 'R')).\
                         group_by(database.c.game_date)
 
     gsaa_avg_df = pd.read_sql_query(gsaa_lg_avg_query, conn)
@@ -87,13 +88,16 @@ def gsaa_creation(season, player, database, conn):
                                database.c.hda, database.c.mdga, database.c.mda,
                                database.c.ldga, database.c.lda]).\
                             where(and_(database.c.season == season,
-                                database.c.goalie == player[0]))
+                                database.c.goalie == player[0],
+                                database.c.session == 'R'))
     else:
         goalie_query = select([database.c.goalie, database.c.game_date, database.c.hdga,
                                database.c.hda, database.c.mdga, database.c.mda,
                                database.c.ldga, database.c.lda]).\
                             where(and_(database.c.season == season,
-                                or_(database.c.goalie == player[0], database.c.goalie == player[1])))
+                                or_(database.c.goalie == player[0],
+                                    database.c.goalie == player[1]),
+                                database.c.session == 'R'))
 
     goalie_query_df = pd.read_sql(goalie_query, conn)
     print(goalie_query_df.head())
@@ -156,7 +160,8 @@ def query_creation(query_list):
                                func.sum(database.c.ixg)]).\
                         where(and_(database.c.player == query_list[0],
                               database.c.season ==
-                              format_season(query_list[-1])))\
+                              format_season(query_list[-1]),
+                              database.c.session == 'R'))\
                         .group_by(database.c.player)
         elif query_list[1][0:4] == 'team':
             sql_query = select([database.c.team,
@@ -168,7 +173,8 @@ def query_creation(query_list):
                                    func.sum(database.c.xgf))*100)]).\
                                where(and_(database.c.team == query_list[0],
                                      database.c.season ==
-                                     format_season(query_list[-1])))\
+                                     format_season(query_list[-1]),
+                                     database.c.session == 'R'))\
                                .group_by(database.c.team)
         else:
             sql_query = select([database.c.goalie,
@@ -182,7 +188,8 @@ def query_creation(query_list):
                                 cast(func.sum(database.c.hda), Float))]).\
                               where(and_(database.c.goalie == query_list[0],
                                     database.c.season ==
-                                    format_season(query_list[-1])))\
+                                    format_season(query_list[-1]),
+                                    database.c.session == 'R'))\
                               .group_by(database.c.goalie)
             gsaa_df = gsaa_creation(format_season(query_list[-1]), [query_list[0]],
                                     database, conn)
@@ -202,7 +209,8 @@ def query_creation(query_list):
                         where(and_(or_(database.c.player == query_list[0],
                               database.c.player == query_list[1]),
                               database.c.season ==
-                              format_season(query_list[-1]))).\
+                              format_season(query_list[-1]),
+                              database.c.session == 'R')).\
                         group_by(database.c.player)
         elif query_list[2][0:4] == 'team':
             sql_query = select([database.c.team,
@@ -215,7 +223,8 @@ def query_creation(query_list):
                         where(and_(or_(database.c.team == query_list[0],
                               database.c.team == query_list[1]),
                               database.c.season ==
-                              format_season(query_list[-1]))).\
+                              format_season(query_list[-1]),
+                              database.c.session == 'R')).\
                         group_by(database.c.team)
         else:
             sql_query = select([database.c.goalie,
@@ -230,7 +239,8 @@ def query_creation(query_list):
                         where(and_(or_(database.c.goalie == query_list[0],
                               database.c.goalie == query_list[1]),
                               database.c.season ==
-                              format_season(query_list[-1]))).\
+                              format_season(query_list[-1]),
+                              database.c.session == 'R')).\
                         group_by(database.c.goalie)
             gsaa_df = gsaa_creation(format_season(query_list[-1]),
                                     [query_list[0], query_list[1]],
@@ -549,13 +559,15 @@ def graph_query_creation(query_list):
                                database.c[query_list[1]]]).\
                         where(and_(database.c.player == query_list[0],
                               database.c.season ==
-                              format_season(query_list[-2])))
+                              format_season(query_list[-2]),
+                              database.c.session == 'R'))
         elif query_list[-1][:4] == 'team':
             sql_query = select([database.c.team, database.c.game_date,
                                database.c[query_list[1]]]).\
                         where(and_(database.c.team == query_list[0],
                               database.c.season ==
-                              format_season(query_list[-2])))
+                              format_season(query_list[-2]),
+                              database.c.session == 'R'))
         else:
             if query_list[1] != 'gsaa':
                 sql_query = select([database.c.goalie, database.c.game_date,
@@ -563,7 +575,8 @@ def graph_query_creation(query_list):
                             where(and_(database.c.goalie == query_list[0],
                                   database.c.season ==
                                   format_season(query_list[-2]),
-                                  cast(database.c[query_list[1]], String) != 'NaN')
+                                  cast(database.c[query_list[1]], String) != 'NaN',
+                                  database.c.session == 'R')
                                   )
                 print(sql_query)
                 average = conn.execute(select
@@ -571,7 +584,8 @@ def graph_query_creation(query_list):
                                        where(and_(database.c.season ==
                                              format_season(query_list[-2]),
                                              cast(database.c[query_list[1]],
-                                                  String) != 'NaN')
+                                                  String) != 'NaN',
+                                             database.c.session == 'R')
                                              ))
                 average = list(average)
                 print(average)
@@ -602,14 +616,16 @@ def graph_query_creation(query_list):
                         where(and_(or_(database.c.player == query_list[0],
                               database.c.player == query_list[1]),
                               database.c.season ==
-                              format_season(query_list[-2])))
+                              format_season(query_list[-2]),
+                              database.c.session == 'R'))
         elif query_list[-1][:4] == 'team':
             sql_query = select([database.c.team, database.c.game_date,
                                database.c[query_list[2]]]).\
                         where(and_(or_(database.c.team == query_list[0],
                               database.c.team == query_list[1]),
                               database.c.season ==
-                              format_season(query_list[-2])))
+                              format_season(query_list[-2]),
+                              database.c.session == 'R'))
         else:
             if query_list[2] != 'gsaa':
                 sql_query = select([database.c.goalie, database.c.game_date,
@@ -618,7 +634,8 @@ def graph_query_creation(query_list):
                                   database.c.goalie == query_list[1]),
                                   database.c.season ==
                                   format_season(query_list[-2]),
-                                  cast(database.c[query_list[2]], String) != 'NaN')
+                                  cast(database.c[query_list[2]], String) != 'NaN',
+                                  database.c.session == 'R')
                                   )
                 print(sql_query)
                 average = conn.execute(select
@@ -626,7 +643,8 @@ def graph_query_creation(query_list):
                                        where(and_(database.c.season ==
                                              format_season(query_list[-2]),
                                              cast(database.c[query_list[2]],
-                                                  String) != 'NaN')
+                                                  String) != 'NaN',
+                                             database.c.session == 'R')
                                              ))
                 average = list(average)
                 print(average)
@@ -660,7 +678,8 @@ def graph_query_creation(query_list):
                                    where(and_(database.c.season ==
                                          format_season(query_list[-2]),
                                          cast(database.c[query_list[2]],
-                                              String) != 'NaN')
+                                              String) != 'NaN',
+                                         database.c.session == 'R')
                                          ))
         else:
             average = conn.execute(select
@@ -668,7 +687,8 @@ def graph_query_creation(query_list):
                                    where(and_(database.c.season ==
                                          format_season(query_list[-2]),
                                          cast(database.c[query_list[1]],
-                                              String) != 'NaN')
+                                              String) != 'NaN',
+                                         database.c.session == 'R')
                                          ))
         average = list(average)
         print(average)
@@ -862,7 +882,7 @@ def main():
     wait_time = 100
     while True:
         try:
-            stream.filter(track=['@barloweanalytic'])
+            stream.filter(track=['@testbot887'])
         except Exception as ex:
             time.sleep(wait_time)
             wait_time += 60
