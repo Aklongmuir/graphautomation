@@ -3467,7 +3467,9 @@ for(game_number in games[[1]]){
     away_advantage <- c('4v5', '3v5', '3v4')
 
     #removes shootout info from data frame and creates is_home dummy variable
-    pbp_df <- pbp_df[pbp_df$game_period < 5,]
+    pbp_df <- ifelse(first(pbp_df$session) == 'R', 
+                     pbp_df[pbp_df$game_period < 5,],
+                     pbp_df)
     pbp_df <- is_home(pbp_df)
     
     pbp_df$event_player_1 <- ifelse(pbp_df$event_player_1 == 'SEBASTIAN.AHO' &
