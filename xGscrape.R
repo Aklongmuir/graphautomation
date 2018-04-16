@@ -3467,9 +3467,10 @@ for(game_number in games[[1]]){
     away_advantage <- c('4v5', '3v5', '3v4')
 
     #removes shootout info from data frame and creates is_home dummy variable
-    pbp_df <- ifelse(first(pbp_df$session) == 'R', 
-                     pbp_df[pbp_df$game_period < 5,],
-                     pbp_df)
+    if(first(pbp_df$session == 'R')) {
+        pbp_df <- pbp_df[pbp_df$game_period < 5,]
+    } 
+    
     pbp_df <- is_home(pbp_df)
     
     pbp_df$event_player_1 <- ifelse(pbp_df$event_player_1 == 'SEBASTIAN.AHO' &
@@ -5535,6 +5536,9 @@ daily_team_stats_5v5$db_key <- paste0(daily_team_stats_5v5$Team,
                                   daily_team_stats_5v5$game_date,
                                   daily_team_stats_5v5$game_id,
                                   daily_team_stats_5v5$season)
+
+daily_goalie_stats$session <- first(pbp_df$session)
+daily_goalie_stats_5v5$session <- first(pbp_df$session)
 #write all the daily compiled stats to | delim files
 dir.create(paste0('~/HockeyStuff/xGGameBreakdowns/dailycompiledstats/', as.character(date)))
 setwd(paste0('~/HockeyStuff/xGGameBreakdowns/dailycompiledstats/', as.character(date)))
